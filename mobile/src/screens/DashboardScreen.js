@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../constants/theme';
+import { t } from '../i18n';
 import { WidgetContent } from '../components/WidgetContent';
 import AddWidgetModal from '../components/AddWidgetModal';
 
@@ -21,13 +22,13 @@ const PADDING = 16;
 const ROW_HEIGHT = 130;
 
 const WIDGET_CATALOG = {
-  camera_live: { id: 'camera_live', title: 'Camera en Direct' },
-  camera_ia:   { id: 'camera_ia',   title: 'Camera IA Sante' },
-  map:         { id: 'map',         title: 'Carte Interactive' },
-  temperature: { id: 'temperature', title: 'Temperature' },
-  humidity:    { id: 'humidity',    title: 'Humidite' },
-  luminosity:  { id: 'luminosity',  title: 'Luminosite' },
-  diseases:    { id: 'diseases',    title: 'Detection Maladies' },
+  camera_live: { id: 'camera_live' },
+  camera_ia:   { id: 'camera_ia' },
+  map:         { id: 'map' },
+  temperature: { id: 'temperature' },
+  humidity:    { id: 'humidity' },
+  luminosity:  { id: 'luminosity' },
+  diseases:    { id: 'diseases' },
 };
 
 const w = (id) => ({ ...WIDGET_CATALOG[id], key: id });
@@ -208,7 +209,7 @@ export default function DashboardScreen() {
           <Text style={styles.headerTitle}>TechFarm</Text>
         </View>
         <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
-          <Text style={styles.addBtnText}>+ Widget</Text>
+          <Text style={styles.addBtnText}>{t('dashboard.addWidget')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -269,7 +270,7 @@ export default function DashboardScreen() {
                             </>
                           )}
                         </Pressable>
-                        <Text style={styles.widgetLabel}>{item.title}</Text>
+                        <Text style={styles.widgetLabel}>{t(`widgets.${item.id}`)}</Text>
                       </View>
                     </React.Fragment>
                   );
@@ -316,7 +317,7 @@ export default function DashboardScreen() {
         onAdd={(widget) => {
           const flat = rows.flat();
           if (!flat.some((ww) => ww.id === widget.id)) {
-            const item = { id: widget.id, key: widget.id, title: widget.title };
+            const item = { id: widget.id, key: widget.id };
             setRows((prev) => [...prev, [item]]);
           }
           setModalVisible(false);

@@ -9,6 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { COLORS, ALL_WIDGETS } from '../constants/theme';
+import { t } from '../i18n';
 import { WidgetContent } from './WidgetContent';
 
 const { width } = Dimensions.get('window');
@@ -42,8 +43,8 @@ export default function AddWidgetModal({ visible, onClose, onAdd, activeWidgets 
           <WidgetContent widgetId={item.id} />
         </View>
         <Text style={[styles.previewLabel, isActive && styles.previewLabelActive]}>
-          {item.title}
-          {isActive ? '\n(déjà ajouté)' : ''}
+          {t(`widgets.${item.id}`)}
+          {isActive ? t('modal.alreadyAdded') : ''}
         </Text>
       </TouchableOpacity>
     );
@@ -56,12 +57,12 @@ export default function AddWidgetModal({ visible, onClose, onAdd, activeWidgets 
           {/* Header */}
           <View style={styles.sheetHeader}>
             <View style={{ width: 30 }} />
-            <Text style={styles.sheetTitle}>Ajouter des Widgets</Text>
+            <Text style={styles.sheetTitle}>{t('modal.title')}</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <Text style={styles.closeBtnText}>✕</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.sheetSubtitle}>Sélectionne un widget à ajouter</Text>
+          <Text style={styles.sheetSubtitle}>{t('modal.subtitle')}</Text>
 
           <FlatList
             data={ALL_WIDGETS}
@@ -78,7 +79,7 @@ export default function AddWidgetModal({ visible, onClose, onAdd, activeWidgets 
             onPress={handleConfirm}
             disabled={!selected}
           >
-            <Text style={styles.confirmBtnText}>Ajouter Widget</Text>
+            <Text style={styles.confirmBtnText}>{t('modal.addButton')}</Text>
           </TouchableOpacity>
         </View>
       </View>

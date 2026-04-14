@@ -1,0 +1,24 @@
+{
+  "widgets": {
+    "camera_live": "Caméra en Direct",
+    "camera_ia": "Caméra IA Santé",
+    "map": "Carte Interactive",
+    "temperature": "Température",
+    "humidity": "Humidité",
+    "luminosity": "Luminosité",
+    "diseases": "Détection Maladies"
+  },
+  "dashboard": {
+    "addWidget": "+ Widget"
+  },
+  "modal": {
+    "title": "Ajouter des Widgets",
+    "subtitle": "Sélectionne un widget à ajouter",
+    "addButton": "Ajouter Widget",
+    "alreadyAdded": "\n(déjà ajouté)"
+  },
+  "widgetContent": {
+    "live": "LIVE",
+    "detected": "⚠️ Détectée"
+  }
+}

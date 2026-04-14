@@ -1,0 +1,24 @@
+{
+  "widgets": {
+    "camera_live": "Live Camera",
+    "camera_ia": "AI Health Camera",
+    "map": "Interactive Map",
+    "temperature": "Temperature",
+    "humidity": "Humidity",
+    "luminosity": "Luminosity",
+    "diseases": "Disease Detection"
+  },
+  "dashboard": {
+    "addWidget": "+ Widget"
+  },
+  "modal": {
+    "title": "Add Widgets",
+    "subtitle": "Select a widget to add",
+    "addButton": "Add Widget",
+    "alreadyAdded": "\n(already added)"
+  },
+  "widgetContent": {
+    "live": "LIVE",
+    "detected": "⚠️ Detected"
+  }
+}

@@ -1,13 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { COLORS, WIDGET_IDS } from '../constants/theme';
+import { t } from '../i18n';
 
 function CameraLiveWidget() {
   return (
     <View style={styles.cameraContainer}>
       <View style={styles.liveBadge}>
         <View style={styles.liveDot} />
-        <Text style={styles.liveText}>LIVE</Text>
+        <Text style={styles.liveText}>{t('widgetContent.live')}</Text>
       </View>
       <Text style={styles.noSignal}>📷</Text>
     </View>
@@ -69,7 +70,7 @@ function DiseasesWidget() {
     <View style={[styles.cameraContainer, { backgroundColor: '#1e3a2f' }]}>
       <Text style={styles.noSignal}>🌿➕</Text>
       <View style={styles.alertBadge}>
-        <Text style={styles.alertText}>⚠️ Détectée</Text>
+        <Text style={styles.alertText}>{t('widgetContent.detected')}</Text>
       </View>
     </View>
   );
