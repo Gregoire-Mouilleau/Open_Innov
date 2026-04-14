@@ -14,7 +14,7 @@ function CameraLiveWidget() {
   ); 
 }
 
-function CameraIAWidget() { t
+function CameraIAWidget() {
   return (
     <View style={styles.cameraContainer}>
       <View style={[styles.liveBadge, { backgroundColor: '#8e44ad' }]}>
