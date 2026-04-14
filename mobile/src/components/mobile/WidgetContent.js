@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
-import { COLORS, WIDGET_IDS } from '../constants/theme';
-import { t } from '../i18n';
+import { COLORS, WIDGET_IDS } from '../../constants/theme';
+import { t } from '../../i18n';
 
 function CameraLiveWidget() {
   return (

@@ -20,5 +20,35 @@
   "widgetContent": {
     "live": "LIVE",
     "detected": "⚠️ Detected"
+  },
+  "nav": {
+    "brand": "TechFarm",
+    "dashboard": "Dashboard",
+    "reports": "Reports",
+    "history": "History",
+    "notConnected": "Not connected",
+    "login": "Log in"
+  },
+  "left": {
+    "systems": "Systems",
+    "lastAnalysis": "Last IoT Analysis",
+    "today": "today at 15:24"
+  },
+  "map": {
+    "farmName": "Tartes Ferme",
+    "satellite": "Satellite View",
+    "cameraLive": "Live Camera",
+    "alertHumidity": "⚠️  Low Soil Humidity",
+    "temperature": "23.5°C"
+  },
+  "charts": {
+    "tempHumidity": "Temperature & Humidity History",
+    "soilHumidity": "Soil Humidity",
+    "temp": "Temp.",
+    "humidity": "Humidity"
+  },
+  "alerts": {
+    "title": "Alerts",
+    "activities": "Recent Activities"
   }
 }

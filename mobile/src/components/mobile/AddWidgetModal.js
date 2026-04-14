@@ -8,8 +8,8 @@ import {
   FlatList,
   Dimensions,
 } from 'react-native';
-import { COLORS, ALL_WIDGETS } from '../constants/theme';
-import { t } from '../i18n';
+import { COLORS, ALL_WIDGETS } from '../../constants/theme';
+import { t } from '../../i18n';
 import { WidgetContent } from './WidgetContent';
 
 const { width } = Dimensions.get('window');
