@@ -11,10 +11,10 @@ function CameraLiveWidget() {
       </View>
       <Text style={styles.noSignal}>📷</Text>
     </View>
-  );
+  ); 
 }
 
-function CameraIAWidget() {
+function CameraIAWidget() { t
   return (
     <View style={styles.cameraContainer}>
       <View style={[styles.liveBadge, { backgroundColor: '#8e44ad' }]}>
