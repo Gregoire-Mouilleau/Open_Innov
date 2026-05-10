@@ -2,10 +2,8 @@ services:
   postgres:
     image: timescale/timescaledb:latest-pg16
     container_name: techfarm_postgres_dev
-    environment:
-      POSTGRES_USER: techfarm
-      POSTGRES_PASSWORD: techfarm_dev
-      POSTGRES_DB: techfarm
+    env_file:
+      - ./backend_next/.env
     ports:
       - "5432:5432"
     volumes:
@@ -19,15 +17,31 @@ services:
   mongo:
     image: mongo:7
     container_name: techfarm_mongo_dev
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: techfarm
-      MONGO_INITDB_ROOT_PASSWORD: techfarm_dev
-      MONGO_INITDB_DATABASE: techfarm
+    env_file:
+      - ./backend_next/.env
     ports:
       - "27017:27017"
     volumes:
       - mongo_dev_data:/data/db
 
+  minio:
+    image: minio/minio:latest
+    container_name: techfarm_minio_dev
+    env_file:
+      - ./backend_next/.env
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"   # API S3
+      - "9001:9001"   # Console web
+    volumes:
+      - minio_dev_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_dev_data:
   mongo_dev_data:
+  minio_dev_data:

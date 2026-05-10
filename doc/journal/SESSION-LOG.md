@@ -36,4 +36,4 @@ Remplir en 5 min max à la fin de chaque session.
 
 **Décision prise :** ADR-0001, ADR-0002, ADR-0003
 
-**Prochain démarrage :** Créer `docker-compose.dev.yml` avec uniquement postgres+timescaledb (image `timescale/timescaledb:latest-pg16`), exposer port 5432, puis exécuter `doc/cartographie sql/bdd PostGres.sql`.
+**Prochain démarrage :** Bloc 2 — installer les clients DB dans Next.js (`pg`, `mongoose`, `minio`) et créer la route `/api/health` pour valider les connexions.

@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(ls \"C:\\\\Users\\\\attis\\\\.claude\\\\agents\")",
-      "Read(//c/Users/attis/.claude/agents/**)"
+      "Read(//c/Users/attis/.claude/agents/**)",
+      "PowerShell(docker exec *)"
     ]
   }
 }

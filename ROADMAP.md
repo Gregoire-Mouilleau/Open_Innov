@@ -16,9 +16,9 @@ Décisions techniques dans `doc/adr/`.
 ## Bloc 1 — Socle BDD local (3 sessions)
 **Objectif :** Stack BDD opérationnelle en local, interrogeable depuis Next.js.
 
-- [ ] 1.1 — PostgreSQL + TimescaleDB en Docker standalone, exécuter `bdd PostGres.sql`, vérifier hypertable `mesure`
-- [ ] 1.2 — Script de seed TypeScript : 2 companies, 5 farms, 15 parcelles, 30 kits, ~100 capteurs, 30 jours de mesures (`pnpm db:seed`)
-- [ ] 1.3 — MongoDB Atlas + MinIO Docker : collections `alertes`/`predictions_ia` avec 50 docs fake, 10 photos test
+- [x] 1.1 — PostgreSQL + TimescaleDB en Docker standalone, exécuter `bdd PostGres.sql`, vérifier hypertable `mesure`
+- [x] 1.2 — Script de seed TypeScript : 2 companies, 5 farms, 15 parcelles, 104 capteurs, 299 624 mesures (`npm run db:seed`)
+- [x] 1.3 — MongoDB local + MinIO Docker : collections `alertes`/`predictions_ia` avec 50 docs fake, 5 photos test, README.md créé
 
 **Livrables :** BDD interrogeable, seed reproductible, connexions testées.
 

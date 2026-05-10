@@ -6,12 +6,20 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
+    "@faker-js/faker": "^10.4.0",
+    "@types/pg": "^8.20.0",
+    "dotenv": "^17.4.2",
+    "minio": "^8.0.7",
+    "mongodb": "^7.2.0",
     "next": "16.2.6",
+    "pg": "^8.20.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "tsx": "^4.21.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

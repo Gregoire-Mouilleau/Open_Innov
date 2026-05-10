@@ -35,6 +35,7 @@ Prêt pour l'étape suivante ?
 - Si un problème détecté → le signaler AVANT de coder
 - Toujours expliquer le POURQUOI d'un choix technique
 - En cas de doute sur le périmètre → poser la question
+- **README.md** : toute addition/modification d'environnement (nouveau service Docker, nouvelle dépendance, nouvelle commande d'init) doit être répercutée dans `README.md` avant de clore l'étape — montrer le diff au user pour validation avant écriture
 
 ---
 

@@ -7,14 +7,14 @@
 
 Le projet est développé par deux personnes :
 - Développeur 1 (Rudolph) : Next.js API routes, BDD, seed, Docker, déploiement
-- Développeur 2 (coéquipier) : Application mobile Expo (`mobile/`)
+- Développeur 2 (Gregoire) : Application mobile Expo (`mobile/`)
 
 ## Décision
 
 ### Branches
 - `main` → production, protégée, merge via PR + approbation des deux
 - `develop` → intégration, protégée, merge via PR
-- `feature/api-*` → branches de Rudolph
+- `feature/backend-*` → branches de Rudolph
 - `feature/mobile-*` → branches du coéquipier
 - `feature/infra-*` → branches partagées (docker, CI/CD, déploiement)
 
@@ -29,12 +29,12 @@ Le projet est développé par deux personnes :
 
 ### Convention de commits
 Format : `type(scope): message`
-- Scopes : `api`, `mobile`, `infra`, `ci`, `db`
-- Exemple : `feat(api): add /parcelles endpoint`
+- Scopes : `backend`, `mobile`, `infra`, `ci`, `db`
+- Exemple : `feat(backend): add /parcelles endpoint`
 
 ### CI/CD conditionnel
 Les jobs CI se déclenchent uniquement si les fichiers du scope ont changé :
-- `lint:api` → trigger sur `backend_next/**`
+- `lint:backend` → trigger sur `backend_next/**`
 - `lint:mobile` → trigger sur `mobile/**`
 - `test:e2e` → trigger uniquement sur PR vers `develop` et `main`
 
