@@ -20,6 +20,49 @@ Remplir en 5 min max à la fin de chaque session.
 
 ---
 
+## 2026-05-11 — Session 2 (Blocs 2→4 complets — Stack API + Auth + CRUD + IoT + Météo)
+
+**Objectif visé :** Implémenter toute la couche API Next.js.
+
+**Fait :**
+- Bloc 2 : clients DB singleton (pg, mongoose, minio), route /api/health
+- Bloc 3 : healthcheck MongoDB ajouté, 3 services healthy
+- Bloc 4a : auth JWT jose — register, login, refresh, middleware verify, ADR-0004
+- Bloc 4b : CRUD Users, Company, Farms avec requireAuth/isAdmin
+- Bloc 4c : Parcelles, Kits, Mesures IoT (raw + graph TimescaleDB), Photos MinIO signées
+- Bloc 4d : proxy météo open-meteo (daily/hourly, cache 30 min)
+- first_name/last_name ajoutés à la table users
+- README complet avec toutes les sections API
+- 5 commits sur feature/backend
+
+**Bloqué / pas fait :** Bloc 5 (CI/CD), 6 (Tests), 7 (ELK optionnel), 8 (Déploiement).
+
+**Décision prise :** Next.js non containerisé en dev (reporté Bloc 8). JWT jose (ADR-0004).
+
+**Prochain démarrage :** Bloc 5 — CI/CD self-hosted runner (GitHub Actions + runner local).
+
+---
+
+## 2026-05-11 — Session 2 (Blocs 2, 3, 4a & 4b — Auth JWT + CRUD Users/Company/Farms)
+
+**Objectif visé :** Implémenter l'auth JWT et les endpoints CRUD de base.
+
+**Fait :**
+- Blocs 2 & 3 : clients DB singleton, route /api/health, healthcheck MongoDB
+- Bloc 4a : auth JWT avec jose — register, login, refresh, middleware verify
+- Bloc 4b : CRUD Users, Company, Farms avec protection requireAuth/isAdmin
+- ADR-0004 créé (JWT stateless avec jose)
+- first_name/last_name ajoutés à la table users (ALTER TABLE + SQL ref)
+- README mis à jour avec toutes les sections API
+
+**Bloqué / pas fait :** Bloc 4c (Kits/Parcelles/IoT) et 4d (météo) restants.
+
+**Décision prise :** Next.js non containerisé en dev (reporté Bloc 8). JWT jose retenu (ADR-0004).
+
+**Prochain démarrage :** Bloc 4c — CRUD Parcelles, Kits, IoT (mesures, graphiques, photos MinIO).
+
+---
+
 ## 2026-05-11 — Session 2 (Blocs 2 & 3 complets — Intégration Next.js API + Docker healthchecks)
 
 **Objectif visé :** Connecter Next.js aux 3 services DB, valider via health route, et s'assurer que les conteneurs sont healthy.

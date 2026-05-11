@@ -3,7 +3,8 @@
     "allow": [
       "Bash(ls \"C:\\\\Users\\\\attis\\\\.claude\\\\agents\")",
       "Read(//c/Users/attis/.claude/agents/**)",
-      "PowerShell(docker exec *)"
+      "PowerShell(docker exec *)",
+      "Bash(docker exec *)"
     ]
   }
 }
