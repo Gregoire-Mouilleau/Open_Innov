@@ -90,6 +90,19 @@ npm run db:seed
 | POST | `/api/auth/login` | Connexion `{ email, password }` |
 | POST | `/api/auth/refresh` | Renouvellement access token (cookie refresh) |
 
+## API — Météo
+
+| Méthode | Endpoint | Description |
+|---|---|---|
+| GET | `/api/meteo` | Proxy open-meteo `?lat=XX&lng=XX&mode=daily\|hourly` |
+
+Paramètres :
+- `?lat` & `?lng` — coordonnées GPS (requis)
+- `?mode=daily` (défaut) — prévisions 7 jours (min/max temp, précipitations, vent)
+- `?mode=hourly` — prévisions heure par heure sur 48h (temp, précip, vent, humidité, nuages)
+
+Réponse mise en cache 30 min côté Next.js.
+
 ## API — Photos
 
 | Méthode | Endpoint | Description |
