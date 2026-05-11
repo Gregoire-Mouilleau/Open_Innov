@@ -81,6 +81,14 @@ npm run db:seed
 
 **Identifiants MinIO console** : `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` dans `backend_next/.env`
 
+## API — Auth
+
+| Méthode | Endpoint | Description |
+|---|---|---|
+| POST | `/api/auth/register` | Inscription admin `{ email, password, first_name, last_name }` |
+| POST | `/api/auth/login` | Connexion `{ email, password }` |
+| POST | `/api/auth/refresh` | Renouvellement access token (cookie refresh) |
+
 ## Développement
 ```bash
 # Backend

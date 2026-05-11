@@ -74,6 +74,7 @@ Prêt pour l'étape suivante ?
 | ADR-0001 | ELK complète MongoDB (Option B) — ES en lecture seule sur les mesures |
 | ADR-0002 | CI/CD via self-hosted runner — 0 quota consommé, runner sur machine locale |
 | ADR-0003 | GitFlow main/develop/feature — ownership mobile/ = coéquipier, backend_next/ = moi |
+| ADR-0004 | Auth JWT stateless avec `jose` — access token 15min + refresh token 7j, compatible Expo + web admin |
 
 Détail dans `doc/adr/`.
 
