@@ -20,6 +20,25 @@ Remplir en 5 min max à la fin de chaque session.
 
 ---
 
+## 2026-05-11 — Session 2 (Blocs 2 & 3 complets — Intégration Next.js API + Docker healthchecks)
+
+**Objectif visé :** Connecter Next.js aux 3 services DB, valider via health route, et s'assurer que les conteneurs sont healthy.
+
+**Fait :**
+- Installation des clients DB : `pg`, `mongoose`, `minio` + `@types/pg`
+- Création des modules singleton `lib/db/postgres.ts`, `lib/db/mongo.ts`, `lib/db/minio.ts`
+- Route `GET /api/health` créée et testée : `ok` avec Docker up, `degraded` avec Docker off
+- Healthcheck MongoDB ajouté dans `docker-compose.dev.yml` (Postgres et MinIO en avaient déjà un)
+- Les 3 services sont `healthy` confirmé
+
+**Bloqué / pas fait :** Service Next.js non containerisé dans le Compose (reporté au Bloc 8 prod).
+
+**Décision prise :** Next.js reste lancé via `npm run dev` en dev — pas de conteneur Next.js en développement.
+
+**Prochain démarrage :** Bloc 4 — Coordination mobile/API : définir les endpoints que l'app Expo du coéquipier va consommer.
+
+---
+
 ## 2026-05-11 — Session 2 (Bloc 2 complet — Intégration Next.js API)
 
 **Objectif visé :** Connecter Next.js aux 3 services DB et valider via une route health.
