@@ -90,6 +90,42 @@ npm run db:seed
 | POST | `/api/auth/login` | Connexion `{ email, password }` |
 | POST | `/api/auth/refresh` | Renouvellement access token (cookie refresh) |
 
+## API — Photos
+
+| Méthode | Endpoint | Description |
+|---|---|---|
+| GET | `/api/parcelles/[id]/photos` | Photos d'une parcelle (URLs signées MinIO, TTL 1h) |
+
+## API — Mesures IoT
+
+| Méthode | Endpoint | Description |
+|---|---|---|
+| GET | `/api/kits/[id]/mesures` | Mesures d'un kit |
+
+Paramètres :
+- `?mode=raw` (défaut) — dernières mesures brutes (max 500)
+- `?mode=graph&interval=1 hour` — données agrégées pour graphiques (TimescaleDB `time_bucket`)
+- `?from=ISO&to=ISO` — plage de dates (défaut : dernières 24h)
+- `?capteur_id=X` — filtrer par capteur
+
+## API — Kits
+
+| Méthode | Endpoint | Description |
+|---|---|---|
+| GET | `/api/kits` | Liste des kits (filtre: `?parcelle_id=X`) |
+| POST | `/api/kits` | Créer un kit `{ parcelle_id, nom?, modele?, date_installation? }` |
+| GET | `/api/kits/[id]` | Détail kit + liste des capteurs |
+| PUT | `/api/kits/[id]` | Modifier un kit (admin requis) |
+
+## API — Parcelles
+
+| Méthode | Endpoint | Description |
+|---|---|---|
+| GET | `/api/parcelles` | Liste des parcelles (filtre: `?farm_id=X`) |
+| POST | `/api/parcelles` | Créer une parcelle `{ farm_id, nom, superficie_ha?, culture_type?, position_lat?, position_lng? }` |
+| GET | `/api/parcelles/[id]` | Détail parcelle + liste des kits |
+| DELETE | `/api/parcelles/[id]` | Supprimer une parcelle (admin requis) |
+
 ## API — Farms
 
 | Méthode | Endpoint | Description |
