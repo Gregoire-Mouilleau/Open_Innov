@@ -20,6 +20,24 @@ Remplir en 5 min max à la fin de chaque session.
 
 ---
 
+## 2026-05-11 — Session 2 (Bloc 2 complet — Intégration Next.js API)
+
+**Objectif visé :** Connecter Next.js aux 3 services DB et valider via une route health.
+
+**Fait :**
+- Installation des clients DB : `pg`, `mongoose`, `minio` + `@types/pg`
+- Création des modules singleton `lib/db/postgres.ts`, `lib/db/mongo.ts`, `lib/db/minio.ts` (cache `globalThis` pour le hot-reload dev)
+- Route `GET /api/health` créée dans `app/api/health/route.ts`
+- Test validé : `status: ok` avec Docker up, `status: degraded` avec Docker off
+
+**Bloqué / pas fait :** Rien de bloquant.
+
+**Décision prise :** Pattern singleton `globalThis` pour les connexions DB (standard Next.js dev HMR).
+
+**Prochain démarrage :** Bloc 3 — Docker Compose + healthchecks : s'assurer que Next.js ne démarre qu'une fois les DB prêtes.
+
+---
+
 ## 2026-05-10 — Session 1 (Bloc 1 complet — Socle BDD)
 
 **Objectif visé :** Mettre en place toute la stack BDD locale opérationnelle.
