@@ -86,8 +86,36 @@ npm run db:seed
 | Méthode | Endpoint | Description |
 |---|---|---|
 | POST | `/api/auth/register` | Inscription admin `{ email, password, first_name, last_name }` |
+| POST | `/api/auth/register/employee` | Inscription employé — admin requis `{ email, password, first_name, last_name, company_id? }` |
 | POST | `/api/auth/login` | Connexion `{ email, password }` |
 | POST | `/api/auth/refresh` | Renouvellement access token (cookie refresh) |
+
+## API — Farms
+
+| Méthode | Endpoint | Description |
+|---|---|---|
+| GET | `/api/farms` | Liste des fermes avec company (auth requis) |
+| POST | `/api/farms` | Créer une ferme `{ nom, company_id, adresse?, code_postal?, country? }` |
+| GET | `/api/farms/[id]` | Détail d'une ferme |
+| PUT | `/api/farms/[id]` | Modifier une ferme (admin requis) |
+| DELETE | `/api/farms/[id]` | Supprimer une ferme (admin requis) |
+
+## API — Companies
+
+| Méthode | Endpoint | Description |
+|---|---|---|
+| GET | `/api/companies` | Liste des companies (auth requis) |
+| POST | `/api/companies` | Créer une company `{ nom, telephone?, code_postal?, country? }` |
+| PUT | `/api/companies/[id]` | Modifier une company (admin requis) |
+| DELETE | `/api/companies/[id]` | Supprimer une company (admin requis) |
+
+## API — Users
+
+| Méthode | Endpoint | Description |
+|---|---|---|
+| GET | `/api/users` | Liste des utilisateurs (admin requis) |
+| PUT | `/api/users/[id]` | Modifier un utilisateur (admin requis) |
+| DELETE | `/api/users/[id]` | Supprimer un utilisateur (admin requis) |
 
 ## Développement
 ```bash
