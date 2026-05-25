@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground }
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../../constants/theme';
 import { t } from '../../i18n';
+import DevToastTester from '../../components/ui/DevToastTester'; // TODO: supprimer avant prod
 
 // ─── Data ─────────────────────────────────────────────────────
 
@@ -322,6 +323,8 @@ export default function DashboardDesktopScreen() {
         <CenterCol />
         <RightPanel />
       </View>
+      {/* TODO: supprimer avant prod */}
+      <DevToastTester />
     </View>
   );
 }
