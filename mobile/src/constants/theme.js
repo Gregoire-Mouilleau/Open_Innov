@@ -21,11 +21,11 @@ export const WIDGET_IDS = {
 };
 
 export const ALL_WIDGETS = [
-  { id: WIDGET_IDS.CAMERA_LIVE, title: 'Camera en Direct' },
-  { id: WIDGET_IDS.CAMERA_IA, title: 'Camera IA Santé' },
-  { id: WIDGET_IDS.MAP, title: 'Carte Interactive' },
-  { id: WIDGET_IDS.TEMPERATURE, title: 'Température' },
-  { id: WIDGET_IDS.HUMIDITY, title: 'Humidité' },
-  { id: WIDGET_IDS.LUMINOSITY, title: 'Luminosité' },
-  { id: WIDGET_IDS.DISEASES, title: 'Détection Maladies' },
+  { id: WIDGET_IDS.CAMERA_LIVE },
+  { id: WIDGET_IDS.CAMERA_IA },
+  { id: WIDGET_IDS.MAP },
+  { id: WIDGET_IDS.TEMPERATURE },
+  { id: WIDGET_IDS.HUMIDITY },
+  { id: WIDGET_IDS.LUMINOSITY },
+  { id: WIDGET_IDS.DISEASES },
 ];

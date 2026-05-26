@@ -1,0 +1,54 @@
+{
+  "widgets": {
+    "camera_live": "Caméra en Direct",
+    "camera_ia": "Caméra IA Santé",
+    "map": "Carte Interactive",
+    "temperature": "Température",
+    "humidity": "Humidité",
+    "luminosity": "Luminosité",
+    "diseases": "Détection Maladies"
+  },
+  "dashboard": {
+    "addWidget": "+ Widget"
+  },
+  "modal": {
+    "title": "Ajouter des Widgets",
+    "subtitle": "Sélectionne un widget à ajouter",
+    "addButton": "Ajouter Widget",
+    "alreadyAdded": "\n(déjà ajouté)"
+  },
+  "widgetContent": {
+    "live": "LIVE",
+    "detected": "⚠️ Détectée"
+  },
+  "nav": {
+    "brand": "TechFarm",
+    "dashboard": "Tableau de bord",
+    "reports": "Rapports",
+    "history": "Historique",
+    "notConnected": "Non connecté",
+    "login": "Se connecter"
+  },
+  "left": {
+    "systems": "Systèmes",
+    "lastAnalysis": "Dernière Analyse iOT",
+    "today": "aujourd'hui à 15:24"
+  },
+  "map": {
+    "farmName": "Tartes Ferme",
+    "satellite": "Vue Satellite",
+    "cameraLive": "Caméra en Direct",
+    "alertHumidity": "⚠️  Alerte Humidité Sol Basse",
+    "temperature": "23,5°C"
+  },
+  "charts": {
+    "tempHumidity": "Historique Température & Humidité",
+    "soilHumidity": "Humidité du Sol",
+    "temp": "Temp.",
+    "humidity": "Humidité"
+  },
+  "alerts": {
+    "title": "Alertes",
+    "activities": "Activités Récentes"
+  }
+}
