@@ -22,17 +22,17 @@ export async function POST(request: Request) {
   if (isAuthError(auth)) return auth
 
   const body = await request.json()
-  const { nom, company_id, adresse, code_postal, country } = body
+  const { nom, company_id, adresse, code_postal, country, latitude, longitude } = body
 
   if (!nom || !company_id) {
     return NextResponse.json({ error: 'nom et company_id requis' }, { status: 400 })
   }
 
   const result = await pool.query(
-    `INSERT INTO farm (nom, company_id, adresse, code_postal, country, created_at)
-     VALUES ($1, $2, $3, $4, $5, NOW())
-     RETURNING id, nom, company_id, adresse, code_postal, country`,
-    [nom, company_id, adresse ?? null, code_postal ?? null, country ?? null]
+    `INSERT INTO farm (nom, company_id, adresse, code_postal, country, latitude, longitude, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+     RETURNING id, nom, company_id, adresse, code_postal, country, latitude, longitude`,
+    [nom, company_id, adresse ?? null, code_postal ?? null, country ?? null, latitude ?? null, longitude ?? null]
   )
 
   return NextResponse.json({ farm: result.rows[0] }, { status: 201 })

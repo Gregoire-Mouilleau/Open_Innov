@@ -36,7 +36,7 @@ services:
       - ./backend_next/.env
     command: server /data --console-address ":9001"
     ports:
-      - "9000:9000"   # API S3
+      - "9002:9000"   # API S3 (9000 occupé par Hadoop namenode)
       - "9001:9001"   # Console web
     volumes:
       - minio_dev_data:/data

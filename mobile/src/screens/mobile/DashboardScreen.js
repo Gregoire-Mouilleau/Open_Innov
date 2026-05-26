@@ -8,6 +8,7 @@ import { COLORS } from '../../constants/theme';
 import { t } from '../../i18n';
 import { WidgetContent } from '../../components/mobile/WidgetContent';
 import AddWidgetModal from '../../components/mobile/AddWidgetModal';
+import useDashboardData from '../../hooks/useDashboardData';
 
 const isWeb = Platform.OS === 'web';
 const GAP = isWeb ? 16 : 10;
@@ -41,6 +42,14 @@ export default function DashboardScreen() {
   const [dropTarget, setDropTarget] = useState(null);
   const [floatPos, setFloatPos] = useState({ x: 0, y: 0 });
   const [scrollEnabled, setScrollEnabled] = useState(true);
+
+  // Données réelles
+  const { data: dashData } = useDashboardData();
+  // Extrait les valeurs brutes des capteurs depuis systems
+  const sensorData = dashData?.systems?.reduce((acc, s) => {
+    if (s.value !== '—') acc[s.id === 'temp' ? 'temperature' : s.id === 'humidity' ? 'humidite_air' : 'humidite_sol'] = s.value;
+    return acc;
+  }, {}) ?? {};
 
   const isDraggingRef = useRef(false);
   const dragSrcRef = useRef(null);
@@ -232,7 +241,7 @@ export default function DashboardScreen() {
                           delayLongPress={350}
                           style={[styles.widgetCard, { height: ROW_HEIGHT }]}
                         >
-                          <WidgetContent widgetId={item.id} />
+                          <WidgetContent widgetId={item.id} data={sensorData} />
                           {!isDragging && (
                             <>
                               <View style={styles.dragHint} pointerEvents="none">

@@ -1,90 +1,194 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../../constants/theme';
 import { t } from '../../i18n';
 import DevToastTester from '../../components/ui/DevToastTester'; // TODO: supprimer avant prod
+import useDashboardData from '../../hooks/useDashboardData';
+import { tokenStorage } from '../../services/api';
+
+// Décode le payload JWT sans vérification de signature (lecture seule)
+function decodeJWT(token) {
+  try {
+    const payload = token.split('.')[1];
+    return JSON.parse(atob(payload));
+  } catch {
+    return null;
+  }
+}
+
+function useAuth(navigation) {
+  const [user, setUser] = useState(null);
+
+  const refresh = useCallback(async () => {
+    const token = await tokenStorage.get();
+    if (!token) { setUser(null); return; }
+    const payload = decodeJWT(token);
+    if (!payload) { setUser(null); return; }
+    // Vérifie l'expiration
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      await tokenStorage.clear();
+      setUser(null);
+      return;
+    }
+    setUser({ email: payload.email, isAdmin: payload.isAdmin });
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const logout = useCallback(async () => {
+    await tokenStorage.clear();
+    setUser(null);
+    navigation?.replace('Auth');
+  }, [navigation]);
+
+  return { user, logout };
+}
 
 // ─── Data ─────────────────────────────────────────────────────
+// Les données statiques ci-dessous sont des fallbacks — remplacées par useDashboardData au runtime
 
-const SYSTEMS = [
-  { id: 'temp',     icon: '🌡️', value: '23,5', unit: '°C',   arrow: '↓', aC: '#e67e22', bg: '#2a1500', bc: '#e67e22' },
-  { id: 'humidity', icon: '💧',  value: '68',   unit: '% HR', arrow: '—', aC: '#3498db', bg: '#001529', bc: '#3498db' },
-  { id: 'soil',     icon: '🌱',  value: '27',   unit: '% HR', arrow: '↑', aC: '#27ae60', bg: '#0a2010', bc: '#27ae60' },
+const SYSTEMS_FALLBACK = [
+  { id: 'temp',     icon: '🌡️', value: '—', unit: '°C',   arrow: '—', aC: '#e67e22', bg: '#2a1500', bc: '#e67e22' },
+  { id: 'humidity', icon: '💧',  value: '—', unit: '% HR', arrow: '—', aC: '#3498db', bg: '#001529', bc: '#3498db' },
+  { id: 'soil',     icon: '🌱',  value: '—', unit: '% HR', arrow: '—', aC: '#27ae60', bg: '#0a2010', bc: '#27ae60' },
 ];
-
-const ALERTS = [
-  { id: 1, color: '#e74c3c', icon: '⚠️', title: 'Humidité du sol basse',    sub: "aujourd'hui à 15:24" },
-  { id: 2, color: '#f39c12', icon: '🌤', title: 'Température élevée',       sub: 'Grand champ à 3 déc.' },
-  { id: 3, color: '#2ecc71', icon: '✚',  title: 'Maladie détectée',         sub: 'Parcelle en bonne santé' },
-];
-
-const ACTIVITIES = [
-  { id: 1, color: '#e67e22', icon: '🌡️', title: 'Température a atteint 34°C', loc: 'Parcelle Clos Gervenue',  time: '10:11s' },
-  { id: 2, color: '#e74c3c', icon: '💧',  title: 'Humidité du sol basse',       loc: 'Grand Plateau Terature', time: '2 min'  },
-  { id: 3, color: '#2ecc71', icon: '🌿',  title: 'Maladie détectée',             loc: 'Planddis du possage',    time: '3 séc'  },
-];
-
-const TEMP_CURVE  = [0.26, 0.36, 0.50, 0.62, 0.68, 0.64, 0.58, 0.54, 0.58, 0.56];
-const HUMID_CURVE = [0.50, 0.46, 0.42, 0.48, 0.58, 0.54, 0.56, 0.50, 0.46, 0.50];
-const SOIL_CURVE  = [1.00, 0.92, 0.82, 0.71, 0.65, 0.55, 0.43, 0.35, 0.27];
-const T_LABELS    = ['10:00', '5:36', '12:8', '13:1', '0:00', '6:06'];
-const S_LABELS    = ['MO9', 'IO6', 'AO7', 'S:09', '7:99', 'S7'];
 
 // ─── Navbar ───────────────────────────────────────────────────
 
-function Navbar({ tab, setTab }) {
+function Navbar({ tab, setTab, user, onLogin, onLogout, onSettings, onCompany }) {
+  const [showMenu, setShowMenu] = useState(false);
   const tabs = [
     { key: 'dashboard', label: t('nav.dashboard') },
     { key: 'reports',   label: t('nav.reports') },
     { key: 'history',   label: t('nav.history') },
   ];
   return (
-    <View style={st.navbar}>
-      <View style={st.brand}>
-        <View style={st.brandIcon}><Text style={{ fontSize: 15 }}>🌿</Text></View>
-        <Text style={st.brandTxt}>{t('nav.brand')}</Text>
-      </View>
-      <View style={st.navTabs}>
-        {tabs.map((item, i) => (
-          <React.Fragment key={item.key}>
-            {i > 0 && <Text style={st.navSep}>|</Text>}
-            <TouchableOpacity onPress={() => setTab(item.label)} style={st.navTabWrap}>
-              <Text style={[st.navTab, tab === item.label && st.navTabOn]}>{item.label}</Text>
-              {tab === item.label && <View style={st.navUnderline} />}
+    <>
+      <View style={st.navbar}>
+        <View style={st.brand}>
+          <View style={st.brandIcon}><Text style={{ fontSize: 15 }}>🌿</Text></View>
+          <Text style={st.brandTxt}>{t('nav.brand')}</Text>
+        </View>
+        <View style={st.navTabs}>
+          {tabs.map((item, i) => (
+            <React.Fragment key={item.key}>
+              {i > 0 && <Text style={st.navSep}>|</Text>}
+              <TouchableOpacity onPress={() => setTab(item.label)} style={st.navTabWrap}>
+                <Text style={[st.navTab, tab === item.label && st.navTabOn]}>{item.label}</Text>
+                {tab === item.label && <View style={st.navUnderline} />}
+              </TouchableOpacity>
+            </React.Fragment>
+          ))}
+        </View>
+        <View style={st.navRight}>
+          {user ? (
+            <TouchableOpacity
+              style={[st.userBtn, showMenu && st.userBtnActive]}
+              onPress={() => setShowMenu(v => !v)}
+              activeOpacity={0.8}
+            >
+              <View style={[st.avatarGuest, { borderColor: showMenu ? COLORS.accent : '#334' }]}>
+                <Text style={{ color: COLORS.accent, fontSize: 16 }}>👤</Text>
+              </View>
+              <View style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                <Text style={st.navUserEmail} numberOfLines={1}>{user.email}</Text>
+                {user.isAdmin && <Text style={st.navUserRole}>{t('nav.admin')}</Text>}
+              </View>
+              <Text style={st.chevron}>{showMenu ? '▲' : '▼'}</Text>
             </TouchableOpacity>
-          </React.Fragment>
-        ))}
-      </View>
-      <View style={st.navRight}>
-        <View style={st.avatarGuest}>
-          <Text style={{ color: '#aaa', fontSize: 16 }}>👤</Text>
+          ) : (
+            <>
+              <View style={st.avatarGuest}>
+                <Text style={{ color: '#aaa', fontSize: 16 }}>👤</Text>
+              </View>
+              <View style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                <Text style={st.navGuestLabel}>{t('nav.notConnected')}</Text>
+              </View>
+              <TouchableOpacity style={st.loginBtn} onPress={onLogin}>
+                <Text style={st.loginBtnTxt}>{t('nav.login')}</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
-        <View style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-          <Text style={st.navGuestLabel}>{t('nav.notConnected')}</Text>
-        </View>
-        <TouchableOpacity style={st.loginBtn}>
-          <Text style={st.loginBtnTxt}>{t('nav.login')}</Text>
-        </TouchableOpacity>
-        <View style={st.navDiv} />
-        <Text style={{ fontSize: 17 }}>⚙</Text>
       </View>
-    </View>
+
+      {/* Overlay transparent pour fermer le menu */}
+      {showMenu && (
+        <TouchableOpacity
+          style={st.menuOverlay}
+          activeOpacity={1}
+          onPress={() => setShowMenu(false)}
+        />
+      )}
+
+      {/* Dropdown menu */}
+      {showMenu && (
+        <View style={st.dropdown}>
+          {/* En-tête avec avatar et infos */}
+          <View style={st.dropdownHeader}>
+            <View style={st.dropdownAvatar}>
+              <Text style={{ fontSize: 22 }}>👤</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={st.dropdownEmail} numberOfLines={1}>{user?.email}</Text>
+              <Text style={st.dropdownRole}>{user?.isAdmin ? t('userMenu.roleAdmin') : t('userMenu.roleUser')}</Text>
+            </View>
+          </View>
+          <View style={st.dropdownDiv} />
+          {/* Paramètres du compte */}
+          <TouchableOpacity style={st.dropdownItem} onPress={() => { setShowMenu(false); onSettings?.(); }}>
+            <Text style={{ fontSize: 17 }}>⚙️</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={st.dropdownItemTxt}>{t('userMenu.settings')}</Text>
+              <Text style={st.dropdownItemSub}>{t('userMenu.settingsSub')}</Text>
+            </View>
+            <Text style={st.dropdownArrow}>›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={st.dropdownItem} onPress={() => { setShowMenu(false); onCompany?.(); }}>
+            <Text style={{ fontSize: 17 }}>🏢</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={st.dropdownItemTxt}>{t('userMenu.company')}</Text>
+              <Text style={st.dropdownItemSub}>{t('userMenu.companySub')}</Text>
+            </View>
+            <Text style={st.dropdownArrow}>›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={st.dropdownItem} onPress={() => setShowMenu(false)}>
+            <Text style={{ fontSize: 17 }}>🔔</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={st.dropdownItemTxt}>{t('userMenu.notifications')}</Text>
+              <Text style={st.dropdownItemSub}>{t('userMenu.notificationsSub')}</Text>
+            </View>
+            <Text style={st.dropdownArrow}>›</Text>
+          </TouchableOpacity>
+          <View style={st.dropdownDiv} />
+          {/* Déconnexion */}
+          <TouchableOpacity style={[st.dropdownItem, st.dropdownLogoutItem]} onPress={() => { setShowMenu(false); onLogout(); }}>
+            <Text style={{ fontSize: 17 }}>🚪</Text>
+            <Text style={st.dropdownLogoutTxt}>{t('userMenu.logout')}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </>
   );
 }
 
 // ─── Left panel ───────────────────────────────────────────────
 
-function LeftPanel() {
+function LeftPanel({ systems, loading }) {
+  const items = systems?.length ? systems : SYSTEMS_FALLBACK;
   return (
     <View style={st.left}>
       <Text style={st.secLabel}>{t('left.systems')}</Text>
-      {SYSTEMS.map(sys => (
+      {items.map(sys => (
         <View key={sys.id} style={[st.sysCard, { backgroundColor: sys.bg, borderColor: sys.bc }]}>
           <Text style={{ fontSize: 20 }}>{sys.icon}</Text>
-          <Text style={[st.sysVal, { color: sys.bc }]}>
-            {sys.value}<Text style={st.sysUnit}> {sys.unit}</Text>
-          </Text>
+          {loading
+            ? <ActivityIndicator size="small" color={sys.bc} style={{ flex: 1 }} />
+            : <Text style={[st.sysVal, { color: sys.bc }]}>
+                {sys.value}<Text style={st.sysUnit}> {sys.unit}</Text>
+              </Text>
+          }
           <Text style={[st.sysArrow, { color: sys.aC }]}>{sys.arrow}</Text>
         </View>
       ))}
@@ -101,33 +205,35 @@ function LeftPanel() {
 
 // ─── Right panel ──────────────────────────────────────────────
 
-function RightPanel() {
+function RightPanel({ alertesList, activities }) {
   return (
     <ScrollView style={st.right} showsVerticalScrollIndicator={false}>
       <Text style={st.secLabel}>{t('alerts.title')}</Text>
-      {ALERTS.map(a => (
-        <View key={a.id} style={[st.alertCard, { borderLeftColor: a.color }]}>
-          <View style={[st.alertIco, { backgroundColor: a.color + '33', width: 32, height: 32, borderRadius: 16 }]}>
-            <Text style={{ color: a.color, fontSize: 15 }}>{a.icon}</Text>
+      {alertesList.length === 0
+        ? <Text style={[st.alertSub, { marginLeft: 8 }]}>Aucune alerte récente</Text>
+        : alertesList.map(a => (
+          <View key={a.id} style={[st.alertCard, { borderLeftColor: a.color }]}>
+            <View style={[st.alertIco, { backgroundColor: a.color + '33', width: 32, height: 32, borderRadius: 16 }]}>
+              <Text style={{ color: a.color, fontSize: 15 }}>{a.icon}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={st.alertTitle}>{a.title}</Text>
+              <Text style={st.alertSub}>{a.sub}</Text>
+            </View>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={st.alertTitle}>{a.title}</Text>
-            <Text style={st.alertSub}>{a.sub}</Text>
-          </View>
-        </View>
-      ))}
+        ))
+      }
       <View style={st.div} />
       <Text style={st.secLabel}>{t('alerts.activities')}</Text>
-      {ACTIVITIES.map(a => (
+      {activities.map(a => (
         <View key={a.id} style={[st.alertCard, { borderLeftColor: a.color }]}>
           <View style={[st.alertIco, { backgroundColor: a.color + '33', width: 30, height: 30, borderRadius: 15 }]}>
             <Text style={{ fontSize: 14 }}>{a.icon}</Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={st.actTitle}>{a.title}</Text>
-            <Text style={st.alertSub}>{a.loc}</Text>
+            <Text style={st.alertSub}>{a.sub}</Text>
           </View>
-          <Text style={st.actTime}>{a.time}</Text>
         </View>
       ))}
     </ScrollView>
@@ -253,7 +359,11 @@ function AxisLbls({ labels }) {
 
 // ─── Charts row ───────────────────────────────────────────────
 
-function ChartsRow() {
+function ChartsRow({ tempCurve, humidCurve, soilCurve, chartLabels }) {
+  const tCurve = tempCurve?.length  ? tempCurve  : [0.5];
+  const hCurve = humidCurve?.length ? humidCurve : [0.5];
+  const sCurve = soilCurve?.length  ? soilCurve  : [0.5];
+  const labels = chartLabels?.length ? chartLabels : ['—'];
   return (
     <View style={st.chartsRow}>
       <View style={[st.chartCard, { flex: 1 }]}>
@@ -265,25 +375,17 @@ function ChartsRow() {
             <View style={[st.lDot, { backgroundColor: '#3498db', marginLeft: 6 }]} />
             <Text style={st.lTxt}>{t('charts.humidity')}</Text>
           </View>
-          <View style={st.chartBtns}>
-            <TouchableOpacity style={st.chartBtn}><Text style={st.chartBtnTxt}>▲</Text></TouchableOpacity>
-            <TouchableOpacity style={st.chartBtn}><Text style={st.chartBtnTxt}>▼</Text></TouchableOpacity>
-          </View>
         </View>
-        <TwoAreaChart d1={TEMP_CURVE} c1="#e67e22" d2={HUMID_CURVE} c2="#3498db" />
-        <AxisLbls labels={T_LABELS} />
+        <TwoAreaChart d1={tCurve} c1="#e67e22" d2={hCurve} c2="#3498db" />
+        <AxisLbls labels={labels} />
       </View>
 
       <View style={[st.chartCard, { flex: 1, borderLeftWidth: 1, borderLeftColor: COLORS.border }]}>
         <View style={st.chartHdr}>
           <Text style={st.chartTitle}>{t('charts.soilHumidity')}</Text>
-          <View style={st.chartBtns}>
-            <TouchableOpacity style={st.chartBtn}><Text style={st.chartBtnTxt}>▲</Text></TouchableOpacity>
-            <TouchableOpacity style={st.chartBtn}><Text style={st.chartBtnTxt}>▼</Text></TouchableOpacity>
-          </View>
         </View>
-        <AreaChart curve={SOIL_CURVE} color="#27ae60" />
-        <AxisLbls labels={S_LABELS} />
+        <AreaChart curve={sCurve} color="#27ae60" />
+        <AxisLbls labels={labels} />
       </View>
     </View>
   );
@@ -291,14 +393,14 @@ function ChartsRow() {
 
 // ─── Center column ────────────────────────────────────────────
 
-function CenterCol() {
+function CenterCol({ farmName, tempCurve, humidCurve, soilCurve, chartLabels }) {
   return (
     <View style={st.center}>
       <View style={st.mapCard}>
         <View style={st.farmHdr}>
           <View style={st.farmNameRow}>
             <View style={[st.farmDot, { backgroundColor: '#2ecc71' }]} />
-            <Text style={st.farmName}>{t('map.farmName')}</Text>
+            <Text style={st.farmName}>{farmName || t('map.farmName')}</Text>
           </View>
           <TouchableOpacity style={st.satBtn}>
             <Text style={st.satTxt}>🛰  {t('map.satellite')}</Text>
@@ -306,22 +408,39 @@ function CenterCol() {
         </View>
         <FarmMap />
       </View>
-      <ChartsRow />
+      <ChartsRow tempCurve={tempCurve} humidCurve={humidCurve} soilCurve={soilCurve} chartLabels={chartLabels} />
     </View>
   );
 }
 
 // ─── Root ─────────────────────────────────────────────────────
 
-export default function DashboardDesktopScreen() {
+export default function DashboardDesktopScreen({ navigation }) {
   const [tab, setTab] = useState(t('nav.dashboard'));
+  const { data, loading } = useDashboardData();
+  const { user, logout } = useAuth(navigation);
+
   return (
     <View style={st.root}>
-      <Navbar tab={tab} setTab={setTab} />
+      <Navbar
+        tab={tab}
+        setTab={setTab}
+        user={user}
+        onLogin={() => navigation?.navigate('Auth')}
+        onLogout={logout}
+        onSettings={() => navigation?.navigate('AccountSettings')}
+        onCompany={() => navigation?.navigate('Company')}
+      />
       <View style={st.body}>
-        <LeftPanel />
-        <CenterCol />
-        <RightPanel />
+        <LeftPanel systems={data.systems} loading={loading} />
+        <CenterCol
+          farmName={data.farmName}
+          tempCurve={data.tempCurve}
+          humidCurve={data.humidCurve}
+          soilCurve={data.soilCurve}
+          chartLabels={data.chartLabels}
+        />
+        <RightPanel alertesList={data.alertes} activities={data.activities} />
       </View>
       {/* TODO: supprimer avant prod */}
       <DevToastTester />
@@ -332,7 +451,7 @@ export default function DashboardDesktopScreen() {
 // ─── Styles ───────────────────────────────────────────────────
 
 const st = StyleSheet.create({
-  root: { flex: 1, flexDirection: 'column', backgroundColor: COLORS.background },
+  root: { flex: 1, flexDirection: 'column', backgroundColor: COLORS.background, position: 'relative' },
 
   navbar: { height: 64, flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d1520', borderBottomWidth: 1, borderBottomColor: COLORS.border, paddingHorizontal: 24 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 10, width: 190 },
@@ -344,12 +463,30 @@ const st = StyleSheet.create({
   navTabOn: { color: COLORS.text, fontWeight: '600' },
   navUnderline: { height: 2, backgroundColor: COLORS.accent, borderRadius: 1, marginTop: 4, width: '100%' },
   navSep: { color: COLORS.border, fontSize: 18 },
-  navRight: { flexDirection: 'row', alignItems: 'center', gap: 10, width: 240, justifyContent: 'flex-end' },
+  navRight: { flexDirection: 'row', alignItems: 'center', gap: 10, width: 260, justifyContent: 'flex-end' },
   avatarGuest: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#1e2d3d', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#334' },
   navGuestLabel: { color: COLORS.textSecondary, fontSize: 12 },
   loginBtn: { backgroundColor: COLORS.accent, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 7 },
   loginBtnTxt: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  navUserEmail: { color: COLORS.text, fontSize: 12, fontWeight: '600', maxWidth: 150 },
+  navUserRole: { color: COLORS.accent, fontSize: 10, marginTop: 1 },
   navDiv: { width: 1, height: 20, backgroundColor: COLORS.border },
+  userBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: COLORS.accent + '33', backgroundColor: '#1a2535' },
+  userBtnActive: { borderColor: COLORS.accent + '88', backgroundColor: '#243047' },
+  chevron: { color: COLORS.textSecondary, fontSize: 10, marginLeft: 2 },
+  menuOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 },
+  dropdown: { position: 'absolute', top: 64, right: 24, width: 270, backgroundColor: '#0e1929', borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, zIndex: 200, shadowColor: '#000', shadowOpacity: 0.6, shadowRadius: 24, shadowOffset: { width: 0, height: 8 } },
+  dropdownHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
+  dropdownAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#1e2d3d', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.accent + '66' },
+  dropdownEmail: { color: COLORS.text, fontSize: 13, fontWeight: '700' },
+  dropdownRole: { color: COLORS.accent, fontSize: 11, marginTop: 2 },
+  dropdownDiv: { height: 1, backgroundColor: COLORS.border, marginHorizontal: 12 },
+  dropdownItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 13 },
+  dropdownItemTxt: { color: COLORS.text, fontSize: 13, fontWeight: '500' },
+  dropdownItemSub: { color: COLORS.textSecondary, fontSize: 11, marginTop: 1 },
+  dropdownArrow: { color: COLORS.textSecondary, fontSize: 18 },
+  dropdownLogoutItem: { marginBottom: 4 },
+  dropdownLogoutTxt: { color: '#e74c3c', fontSize: 13, fontWeight: '600', flex: 1 },
 
   body: { flex: 1, flexDirection: 'row' },
 

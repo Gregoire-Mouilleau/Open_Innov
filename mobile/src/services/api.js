@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
-const TIMEOUT_MS = 10_000;
+const TIMEOUT_MS = 30_000;
 
 // ─── Erreurs typées ───────────────────────────────────────────────────────────
 
@@ -67,7 +67,7 @@ async function apiFetch(path, options = {}, _retry = true) {
   } catch (err) {
     clearTimeout(timeoutId);
     const apiErr = err.name === 'AbortError'
-      ? new ApiError(ErrorType.TIMEOUT, 'La requête a expiré (10s)', null)
+      ? new ApiError(ErrorType.TIMEOUT, 'La requête a expiré (30s)', null)
       : new ApiError(ErrorType.NETWORK, 'Impossible de contacter le serveur', null);
     notifyError(apiErr);
     throw apiErr;
@@ -75,8 +75,8 @@ async function apiFetch(path, options = {}, _retry = true) {
     clearTimeout(timeoutId);
   }
 
-  // ── 401 : tentative de refresh automatique (une seule fois) ─────────────────
-  if (res.status === 401 && _retry) {
+  // ── 401 : tentative de refresh automatique (une seule fois, hors routes auth) ─
+  if (res.status === 401 && _retry && !path.startsWith('/api/auth/')) {
     try {
       if (!_isRefreshing) {
         _isRefreshing = true;
@@ -104,7 +104,10 @@ async function apiFetch(path, options = {}, _retry = true) {
     else                          type = ErrorType.UNKNOWN;
 
     const apiErr = new ApiError(type, message, res.status);
-    notifyError(apiErr);
+    // Les routes /api/auth/* (login, register…) sont gérées directement par l'écran appelant
+    if (!path.startsWith('/api/auth/')) {
+      notifyError(apiErr);
+    }
     throw apiErr;
   }
 
@@ -121,20 +124,25 @@ export const auth = {
    * - Retourner data.user
    */
   /**
-   * TODO (dev junior) : implémenter le login
-   * - POST /api/auth/login avec { email, password }
-   * - Stocker le token : await tokenStorage.set(data.accessToken)
-   * - Retourner data.user
+   * @param {string} email
+   * @param {string} password
    */
-  login: async (_email, _password) => {
-    // TODO: implémenter
-    throw new ApiError(ErrorType.UNKNOWN, 'Login non implémenté', null);
+  login: async (email, password) => {
+    const data = await apiFetch('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    await tokenStorage.set(data.accessToken);
+    return data.user;
   },
 
-  register: async (email, password, firstName, lastName) => {
+  /**
+   * @param {{ email, password, first_name, last_name, company_nom, farm_nom, departement, pays }} fields
+   */
+  register: async (fields) => {
     const data = await apiFetch('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ email, password, first_name: firstName, last_name: lastName }),
+      body: JSON.stringify(fields),
     });
     await tokenStorage.set(data.accessToken);
     return data.user;
@@ -145,13 +153,12 @@ export const auth = {
   },
 
   /**
-   * TODO (dev junior) : implémenter le refresh token
-   * - POST /api/auth/refresh (cookie envoyé automatiquement)
-   * - Stocker le nouveau token : await tokenStorage.set(data.accessToken)
+   * Rafraîchit l'access token via le cookie refresh_token
    */
   refresh: async () => {
-    // TODO: implémenter
-    throw new ApiError(ErrorType.UNAUTHORIZED, 'Refresh non implémenté', 401);
+    const data = await apiFetch('/api/auth/refresh', { method: 'POST' }, false);
+    await tokenStorage.set(data.accessToken);
+    return data.accessToken;
   },
 };
 
@@ -226,6 +233,31 @@ export const meteo = {
     apiFetch(`/api/meteo?lat=${lat}&lng=${lng}&mode=${mode}`),
 };
 
+// ─── Alertes (MongoDB) ────────────────────────────────────────────────────────
+
+export const alertes = {
+  /**
+   * @param {{ limit?: number, severite?: string, lu?: boolean, parcelleId?: number }} opts
+   */
+  list: (opts = {}) => {
+    const params = new URLSearchParams();
+    if (opts.limit)      params.set('limit', String(opts.limit));
+    if (opts.severite)   params.set('severite', opts.severite);
+    if (opts.lu !== undefined) params.set('lu', String(opts.lu));
+    if (opts.parcelleId) params.set('parcelle_id', String(opts.parcelleId));
+    return apiFetch(`/api/alertes?${params.toString()}`);
+  },
+};
+
+// ─── Roles ───────────────────────────────────────────────────
+
+export const roles = {
+  list:   ()          => apiFetch('/api/roles'),
+  create: (body)      => apiFetch('/api/roles', { method: 'POST', body: JSON.stringify(body) }),
+  update: (id, body)  => apiFetch(`/api/roles/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  delete: (id)        => apiFetch(`/api/roles/${id}`, { method: 'DELETE' }),
+};
+
 // ─── Users ────────────────────────────────────────────────────────────────────
 
 export const users = {
@@ -233,4 +265,8 @@ export const users = {
   get: (id) => apiFetch(`/api/users/${id}`),
   update: (id, body) => apiFetch(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   delete: (id) => apiFetch(`/api/users/${id}`, { method: 'DELETE' }),
+  me: () => apiFetch('/api/users/me'),
+  updateMe: (body) => apiFetch('/api/users/me', { method: 'PATCH', body: JSON.stringify(body) }),
+  changePassword: (body) => apiFetch('/api/auth/change-password', { method: 'POST', body: JSON.stringify(body) }),
+  invite: (body) => apiFetch('/api/auth/register/employee', { method: 'POST', body: JSON.stringify(body) }),
 };

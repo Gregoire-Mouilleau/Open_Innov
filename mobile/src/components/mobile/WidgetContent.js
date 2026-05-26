@@ -38,29 +38,29 @@ function MapWidget() {
   );
 }
 
-function TemperatureWidget() {
+function TemperatureWidget({ data }) {
   return (
     <View style={styles.sensorContainer}>
       <Text style={styles.sensorIcon}>🌡️</Text>
-      <Text style={styles.sensorValue}>22° C</Text>
+      <Text style={styles.sensorValue}>{data?.temperature != null ? `${Number(data.temperature).toFixed(1)}° C` : '22° C'}</Text>
     </View>
   );
 }
 
-function HumidityWidget() {
+function HumidityWidget({ data }) {
   return (
     <View style={styles.sensorContainer}>
       <Text style={styles.sensorIcon}>💧</Text>
-      <Text style={styles.sensorValue}>68 % HR</Text>
+      <Text style={styles.sensorValue}>{data?.humidite_air != null ? `${Number(data.humidite_air).toFixed(1)} % HR` : '68 % HR'}</Text>
     </View>
   );
 }
 
-function LuminosityWidget() {
+function LuminosityWidget({ data }) {
   return (
     <View style={styles.sensorContainer}>
       <Text style={styles.sensorIcon}>☀️</Text>
-      <Text style={styles.sensorValue}>742 Lux</Text>
+      <Text style={styles.sensorValue}>{data?.luminosite != null ? `${Number(data.luminosite).toFixed(0)} Lux` : '742 Lux'}</Text>
     </View>
   );
 }
@@ -76,14 +76,14 @@ function DiseasesWidget() {
   );
 }
 
-export function WidgetContent({ widgetId }) {
+export function WidgetContent({ widgetId, data }) {
   switch (widgetId) {
     case WIDGET_IDS.CAMERA_LIVE: return <CameraLiveWidget />;
     case WIDGET_IDS.CAMERA_IA: return <CameraIAWidget />;
     case WIDGET_IDS.MAP: return <MapWidget />;
-    case WIDGET_IDS.TEMPERATURE: return <TemperatureWidget />;
-    case WIDGET_IDS.HUMIDITY: return <HumidityWidget />;
-    case WIDGET_IDS.LUMINOSITY: return <LuminosityWidget />;
+    case WIDGET_IDS.TEMPERATURE: return <TemperatureWidget data={data} />;
+    case WIDGET_IDS.HUMIDITY: return <HumidityWidget data={data} />;
+    case WIDGET_IDS.LUMINOSITY: return <LuminosityWidget data={data} />;
     case WIDGET_IDS.DISEASES: return <DiseasesWidget />;
     default: return null;
   }

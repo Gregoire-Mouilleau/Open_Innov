@@ -14,25 +14,50 @@ export async function PUT(request: Request, { params }: Params) {
 
   const { id } = await params
   const body = await request.json()
-  const { first_name, last_name, role, company_id } = body
+  const { first_name, last_name, role, company_id, company_role_id } = body
 
-  const result = await pool.query(
-    `UPDATE users
-     SET first_name = COALESCE($1, first_name),
-         last_name  = COALESCE($2, last_name),
-         role       = COALESCE($3, role),
-         company_id = COALESCE($4, company_id),
-         updated_at = NOW()
-     WHERE id = $5
-     RETURNING id, email, first_name, last_name, role, company_id`,
-    [first_name ?? null, last_name ?? null, role ?? null, company_id ?? null, Number(id)]
-  )
+  const client = await pool.connect()
+  try {
+    // Si on change de company_role, on récupère le base_role pour syncer le champ role
+    let resolvedRole = role ?? null
+    if (company_role_id != null) {
+      const crRes = await client.query<{ base_role: string }>(
+        'SELECT base_role FROM company_role WHERE id = $1',
+        [Number(company_role_id)]
+      )
+      if (crRes.rowCount === 0) {
+        client.release()
+        return NextResponse.json({ error: 'rôle introuvable' }, { status: 404 })
+      }
+      resolvedRole = crRes.rows[0].base_role
+    }
 
-  if (result.rowCount === 0) {
-    return NextResponse.json({ error: 'utilisateur introuvable' }, { status: 404 })
+    const result = await client.query(
+      `UPDATE users
+       SET first_name       = COALESCE($1, first_name),
+           last_name        = COALESCE($2, last_name),
+           role             = COALESCE($3, role),
+           company_id       = COALESCE($4, company_id),
+           company_role_id  = COALESCE($5, company_role_id),
+           updated_at       = NOW()
+       WHERE id = $6
+       RETURNING id, email, first_name, last_name, role, company_id, company_role_id`,
+      [first_name ?? null, last_name ?? null, resolvedRole, company_id ?? null,
+       company_role_id ?? null, Number(id)]
+    )
+
+    client.release()
+
+    if (result.rowCount === 0) {
+      return NextResponse.json({ error: 'utilisateur introuvable' }, { status: 404 })
+    }
+
+    return NextResponse.json({ user: result.rows[0] }, { status: 200 })
+  } catch (err) {
+    client.release()
+    console.error('[users PUT]', err)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
-
-  return NextResponse.json({ user: result.rows[0] }, { status: 200 })
 }
 
 export async function DELETE(request: Request, { params }: Params) {

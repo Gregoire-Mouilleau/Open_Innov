@@ -7,6 +7,7 @@ export type JWTPayload = {
   sub: string
   email: string
   isAdmin: boolean
+  role: string
 }
 
 export async function signAccessToken(payload: JWTPayload): Promise<string> {
