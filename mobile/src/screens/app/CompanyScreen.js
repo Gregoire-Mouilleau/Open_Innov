@@ -1,12 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  TextInput, ActivityIndicator,
+  TextInput, ActivityIndicator, Platform,
 } from 'react-native';
 import { COLORS } from '../../constants/theme';
 import { t } from '../../i18n';
-import { users, companies, farms, roles } from '../../services/api';
+import { Ionicons } from '@expo/vector-icons';
+import { users, companies, farms, roles, parcelles as parcellesApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+
+// MapPicker chargé uniquement sur web
+const MapPicker = Platform.OS === 'web'
+  ? require('../../components/map/MapPicker').default
+  : null;
 
 // ─── Helpers ──────────────────────────────────────────────────
 
@@ -45,11 +51,139 @@ function Field({ label, value, onChangeText, placeholder, keyboardType }) {
 
 // ─── Carte d'une ferme ────────────────────────────────────────
 
-function FarmCard({ farm }) {
+function FarmCard({ farm, canManage, onChanged, onDeleted }) {
+  const { show } = useToast();
+  const [expanded,           setExpanded]           = useState(false);
+  const [editName,           setEditName]           = useState(farm.nom);
+  const [farmParcelles,      setFarmParcelles]      = useState([]);
+  const [loadingP,           setLoadingP]           = useState(false);
+  const [saving,             setSaving]             = useState(false);
+  const [addingParcelle,     setAddingParcelle]     = useState(false);
+  const [newParcelleName,    setNewParcelleName]    = useState('');
+  const [confirmDel,         setConfirmDel]         = useState(false);
+  const [expandedParcelleId, setExpandedParcelleId] = useState(null);
+  const [savingParcelleId,   setSavingParcelleId]   = useState(null);
+
   const hasGps = farm.latitude != null && farm.longitude != null;
+
+  const loadParcelles = useCallback(async () => {
+    setLoadingP(true);
+    try {
+      const res = await parcellesApi.list(farm.id);
+      setFarmParcelles((res.parcelles ?? []).map(p => ({
+        ...p,
+        editNom:        p.nom,
+        editSuperficie: p.superficie_ha != null ? String(p.superficie_ha) : '',
+        editCulture:    p.culture_type ?? '',
+        // Utiliser la géométrie exacte stockée, sinon tableau vide
+        editZones:      p.geometry ? [{ id: `existing-${p.id}`, latlngs: p.geometry, name: p.nom }] : [],
+      })));
+    } catch {}
+    finally { setLoadingP(false); }
+  }, [farm.id]);
+
+  const handleToggle = () => {
+    if (!expanded) loadParcelles();
+    setExpanded(v => !v);
+    setConfirmDel(false);
+    setExpandedParcelleId(null);
+  };
+
+  const updateParcelleField = (id, field, value) =>
+    setFarmParcelles(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
+
+  const deleteParcelle = async (id) => {
+    try {
+      await parcellesApi.delete(id);
+      setFarmParcelles(prev => prev.filter(p => p.id !== id));
+      show('Parcelle supprimée ✓', 'success');
+      onChanged?.({ ...farm, parcelles_count: Math.max(0, (farm.parcelles_count ?? 1) - 1) });
+    } catch (e) { show(e.message ?? 'Erreur', 'error'); }
+  };
+
+  const saveParcelleDetails = async (p) => {
+    setSavingParcelleId(p.id);
+    try {
+      const body = {
+        nom:          p.editNom.trim() || p.nom,
+        superficie_ha: p.editSuperficie ? parseFloat(p.editSuperficie) : null,
+        culture_type:  p.editCulture  || null,
+      };
+      // Si des zones sont présentes (initiales ou redessinées) → sauvegarder géométrie + centroïde
+      if (p.editZones?.length > 0) {
+        const firstZone = p.editZones[0];
+        const allPts = p.editZones.flatMap(z => z.latlngs);
+        body.position_lat = allPts.reduce((s, pt) => s + pt.lat, 0) / allPts.length;
+        body.position_lng = allPts.reduce((s, pt) => s + pt.lng, 0) / allPts.length;
+        body.geometry     = firstZone.latlngs;
+        // Estimation superficie via Shoelace si non saisie manuellement
+        if (!p.editSuperficie && firstZone.latlngs?.length >= 3) {
+          const pts = firstZone.latlngs;
+          let area = 0;
+          for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+            area += (pts[j].lng + pts[i].lng) * (pts[j].lat - pts[i].lat);
+          }
+          body.superficie_ha = Math.abs(area) * 0.5 * 111 * 85 * 100;
+        }
+      }
+      await parcellesApi.update(p.id, body);
+      show(p.editNom + ' mise à jour ✓', 'success');
+      setFarmParcelles(prev => prev.map(pp =>
+        pp.id === p.id ? { ...pp, ...body, nom: body.nom, editZones: [] } : pp
+      ));
+      setExpandedParcelleId(null);
+    } catch (e) { show(e.message ?? 'Erreur', 'error'); }
+    finally { setSavingParcelleId(null); }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      if (editName.trim() && editName.trim() !== farm.nom)
+        await farms.update(farm.id, { nom: editName.trim() });
+      for (const p of farmParcelles)
+        if (p.editNom.trim() !== p.nom)
+          await parcellesApi.update(p.id, { nom: p.editNom.trim() });
+      show('Modifications enregistrées ✓', 'success');
+      setFarmParcelles(prev => prev.map(p => ({ ...p, nom: p.editNom.trim() })));
+      onChanged?.({ ...farm, nom: editName.trim() || farm.nom });
+      setExpanded(false);
+    } catch (e) { show(e.message ?? 'Erreur', 'error'); }
+    finally { setSaving(false); }
+  };
+
+  const handleDeleteFarm = async () => {
+    if (!confirmDel) { setConfirmDel(true); return; }
+    try {
+      await farms.delete(farm.id);
+      show(farm.nom + ' supprimée ✓', 'success');
+      onDeleted?.(farm.id);
+    } catch (e) { show(e.message ?? 'Erreur', 'error'); }
+  };
+
+  const handleAddParcelle = async () => {
+    const nom = newParcelleName.trim();
+    if (!nom) { show('Nom requis', 'warning'); return; }
+    try {
+      const res = await parcellesApi.create({ farm_id: farm.id, nom });
+      const newP = res.parcelle ?? res;
+      setFarmParcelles(prev => [...prev, {
+        ...newP,
+        editNom: newP.nom,
+        editSuperficie: '',
+        editCulture: '',
+        editZones: [],
+      }]);
+      onChanged?.({ ...farm, parcelles_count: (farm.parcelles_count ?? 0) + 1 });
+      setNewParcelleName('');
+      setAddingParcelle(false);
+      show(nom + ' ajoutée ✓', 'success');
+    } catch (e) { show(e.message ?? 'Erreur', 'error'); }
+  };
+
   return (
     <View style={st.farmCard}>
-      <View style={st.farmCardTop}>
+      <TouchableOpacity style={st.farmCardTop} onPress={handleToggle} activeOpacity={0.7}>
         <View style={st.farmIcon}><Text style={{ fontSize: 18 }}>🌾</Text></View>
         <View style={{ flex: 1 }}>
           <Text style={st.farmName}>{farm.nom}</Text>
@@ -58,11 +192,188 @@ function FarmCard({ farm }) {
         <View style={st.parcellesBadge}>
           <Text style={st.parcellesBadgeTxt}>{farm.parcelles_count ?? 0} {t('company.parcelles')}</Text>
         </View>
-      </View>
-      {hasGps && (
+        <Text style={st.farmCardArrow}>{expanded ? '▲' : '▼'}</Text>
+      </TouchableOpacity>
+
+      {hasGps && !expanded && (
         <View style={st.gpsBadge}>
           <Text style={{ fontSize: 13 }}>📍</Text>
           <Text style={st.gpsCoords}>{Number(farm.latitude).toFixed(5)}, {Number(farm.longitude).toFixed(5)}</Text>
+        </View>
+      )}
+
+      {expanded && (
+        <View style={st.farmEditPanel}>
+          {canManage && (
+            <View style={st.field}>
+              <Text style={st.fieldLabel}>Nom de la ferme</Text>
+              <TextInput
+                style={st.input}
+                value={editName}
+                onChangeText={setEditName}
+                placeholder="Nom de la ferme"
+                placeholderTextColor={COLORS.textSecondary}
+              />
+            </View>
+          )}
+
+          <View style={st.farmEditSection}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+              <Text style={[st.farmEditSectionTitle, { flex: 1, marginBottom: 0 }]}>Parcelles ({farmParcelles.length})</Text>
+              {canManage && (
+                <TouchableOpacity
+                  onPress={() => { setAddingParcelle(v => !v); setNewParcelleName(''); }}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                >
+                  <Ionicons name={addingParcelle ? 'close-circle-outline' : 'add-circle-outline'} size={20} color={COLORS.accent} />
+                  <Text style={{ color: COLORS.accent, fontSize: 13, fontWeight: '600' }}>
+                    {addingParcelle ? 'Annuler' : 'Ajouter'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {addingParcelle && (
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+                <TextInput
+                  style={[st.input, { flex: 1 }]}
+                  value={newParcelleName}
+                  onChangeText={setNewParcelleName}
+                  placeholder="Nom de la nouvelle parcelle"
+                  placeholderTextColor={COLORS.textSecondary}
+                  autoFocus
+                  onSubmitEditing={handleAddParcelle}
+                />
+                <TouchableOpacity style={st.btn} onPress={handleAddParcelle}>
+                  <Text style={st.btnTxt}>Créer</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {loadingP
+              ? <ActivityIndicator color={COLORS.accent} style={{ marginVertical: 10 }} />
+              : farmParcelles.length === 0
+                ? <Text style={st.empty}>Aucune parcelle</Text>
+                : farmParcelles.map(p => {
+                    const isExpP = expandedParcelleId === p.id;
+                    const isSavingP = savingParcelleId === p.id;
+                    const center = p.position_lat && p.position_lng
+                      ? [parseFloat(p.position_lat), parseFloat(p.position_lng)]
+                      : null;
+                    return (
+                      <View key={p.id} style={st.parcelleBlock}>
+                        {/* Ligne nom + boutons */}
+                        <View style={st.parcelleEditRow}>
+                          <TextInput
+                            style={[st.input, { flex: 1 }]}
+                            value={p.editNom}
+                            onChangeText={n => updateParcelleField(p.id, 'editNom', n)}
+                            placeholder="Nom de la parcelle"
+                            placeholderTextColor={COLORS.textSecondary}
+                            editable={canManage}
+                          />
+                          {canManage && (
+                            <TouchableOpacity
+                              style={[st.parcelleIconBtn, isExpP && { backgroundColor: COLORS.accent + '33' }]}
+                              onPress={() => setExpandedParcelleId(isExpP ? null : p.id)}
+                            >
+                              <Ionicons name={isExpP ? 'chevron-up' : 'create-outline'} size={18} color={COLORS.accent} />
+                            </TouchableOpacity>
+                          )}
+                          {canManage && (
+                            <TouchableOpacity style={st.parcelleDelBtn} onPress={() => deleteParcelle(p.id)}>
+                              <Ionicons name="trash-outline" size={18} color={COLORS.accent} />
+                            </TouchableOpacity>
+                          )}
+                        </View>
+
+                        {/* Panneau détail parcelle */}
+                        {isExpP && canManage && (
+                          <View style={st.parcelleDetailPanel}>
+                            <View style={st.row2}>
+                              <View style={st.field}>
+                                <Text style={st.fieldLabel}>Superficie (ha)</Text>
+                                <TextInput
+                                  style={st.input}
+                                  value={p.editSuperficie}
+                                  onChangeText={n => updateParcelleField(p.id, 'editSuperficie', n)}
+                                  placeholder="Ex: 2.5"
+                                  placeholderTextColor={COLORS.textSecondary}
+                                  keyboardType="decimal-pad"
+                                />
+                              </View>
+                              <View style={st.field}>
+                                <Text style={st.fieldLabel}>Culture</Text>
+                                <TextInput
+                                  style={st.input}
+                                  value={p.editCulture}
+                                  onChangeText={n => updateParcelleField(p.id, 'editCulture', n)}
+                                  placeholder="Ex: blé, maïs…"
+                                  placeholderTextColor={COLORS.textSecondary}
+                                />
+                              </View>
+                            </View>
+
+                            {/* Carte redessin — web uniquement */}
+                            {Platform.OS === 'web' && MapPicker && (
+                              <View style={{ gap: 6 }}>
+                                <Text style={st.fieldLabel}>Redessiner la zone sur la carte</Text>
+                                <Text style={[st.farmAddr, { marginBottom: 4 }]}>
+                                  {p.editZones?.length > 0
+                                    ? `✓ Nouvelle zone dessinée (${p.editZones.length} polygone${p.editZones.length > 1 ? 's' : ''})`
+                                    : center
+                                      ? 'Dessine un polygone pour repositionner / redimensionner la parcelle'
+                                      : 'Aucune position enregistrée — dessine un polygone pour en définir une'
+                                  }
+                                </Text>
+                                <MapPicker
+                                  onZonesChange={zones => updateParcelleField(p.id, 'editZones', zones)}
+                                  initialCenter={center ?? [46.8, 2.3]}
+                                  initialZoom={center ? 16 : 6}
+                                  initialZones={p.editZones}
+                                />
+                              </View>
+                            )}
+
+                            <TouchableOpacity
+                              style={[st.btn, { marginTop: 4 }, isSavingP && st.btnDisabled]}
+                              onPress={() => saveParcelleDetails(p)}
+                              disabled={isSavingP}
+                            >
+                              {isSavingP
+                                ? <ActivityIndicator color="#fff" size="small" />
+                                : <Text style={st.btnTxt}>Enregistrer les modifications</Text>
+                              }
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })
+            }
+          </View>
+
+          {canManage && (
+            <View style={st.farmEditActions}>
+              <TouchableOpacity
+                style={[st.deleteBtn, confirmDel && st.deleteBtnConfirm, { flex: 1 }]}
+                onPress={handleDeleteFarm}
+              >
+                <Text style={[st.deleteBtnTxt, confirmDel && { color: '#ff4444' }]}>
+                  {confirmDel ? 'Confirmer ?' : 'Supprimer la ferme'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[st.btn, { flex: 1, marginTop: 0 }, saving && st.btnDisabled]}
+                onPress={handleSave}
+                disabled={saving}
+              >
+                {saving
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <Text style={st.btnTxt}>Enregistrer</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       )}
     </View>
@@ -72,31 +383,63 @@ function FarmCard({ farm }) {
 // ─── Formulaire ajout ferme ───────────────────────────────────
 
 function AddFarmForm({ companyId, onCreated }) {
-  const { show } = useToast();
-  const [nom,       setNom]       = useState('');
-  const [adresse,   setAdresse]   = useState('');
-  const [zip,       setZip]       = useState('');
-  const [country,   setCountry]   = useState('');
-  const [lat,       setLat]       = useState('');
-  const [lng,       setLng]       = useState('');
-  const [saving,    setSaving]    = useState(false);
+  const { show }  = useToast();
+  const [nom,     setNom]    = useState('');
+  const [zones,   setZones]  = useState([]);   // zones dessinées sur la carte
+  const [saving,  setSaving] = useState(false);
+
+  // Fallback mobile : champs texte
+  const [adresse, setAdresse] = useState('');
+  const [zip,     setZip]     = useState('');
+  const [country, setCountry] = useState('');
+  const [lat,     setLat]     = useState('');
+  const [lng,     setLng]     = useState('');
 
   const handleCreate = async () => {
     if (!nom.trim()) { show('Nom requis', 'warning'); return; }
+
+    // Sur web : au moins une zone requise
+    if (Platform.OS === 'web' && zones.length === 0) {
+      show('Dessine au moins une zone sur la carte', 'warning');
+      return;
+    }
+
     setSaving(true);
     try {
+      // Calculer le centre depuis les zones (ou champs manuels sur mobile)
+      let latitude  = lat  ? parseFloat(lat)  : null;
+      let longitude = lng  ? parseFloat(lng)  : null;
+
+      if (Platform.OS === 'web' && zones.length > 0) {
+        // Centre = barycentre de tous les points de toutes les zones
+        const allPoints = zones.flatMap(z => z.latlngs);
+        latitude  = allPoints.reduce((s, p) => s + p.lat, 0) / allPoints.length;
+        longitude = allPoints.reduce((s, p) => s + p.lng, 0) / allPoints.length;
+      }
+
+      // Construire les parcelles depuis les zones
+      const parcelles = zones.map((z, i) => ({
+        nom:          z.name?.trim() || `Parcelle ${i + 1}`,
+        latlngs:      z.latlngs,
+        // centre de la zone
+        position_lat: z.latlngs.reduce((s, p) => s + p.lat, 0) / z.latlngs.length,
+        position_lng: z.latlngs.reduce((s, p) => s + p.lng, 0) / z.latlngs.length,
+      }));
+
       const { farm } = await farms.create({
-        nom: nom.trim(),
-        company_id: companyId,
-        adresse: adresse || null,
+        nom:         nom.trim(),
+        company_id:  companyId,
+        adresse:     adresse || null,
         code_postal: zip || null,
-        country: country || null,
-        latitude:  lat  ? parseFloat(lat)  : null,
-        longitude: lng  ? parseFloat(lng)  : null,
+        country:     country || null,
+        latitude,
+        longitude,
+        parcelles,   // backend crée les parcelles en même temps
       });
+
       show(farm.nom + ' créée ✓', 'success');
       onCreated(farm);
-      setNom(''); setAdresse(''); setZip(''); setCountry(''); setLat(''); setLng('');
+      setNom(''); setZones([]); setAdresse(''); setZip(''); setCountry(''); setLat(''); setLng('');
     } catch (e) {
       show(e.message ?? 'Erreur', 'error');
     } finally {
@@ -106,16 +449,35 @@ function AddFarmForm({ companyId, onCreated }) {
 
   return (
     <View style={st.addForm}>
-      <Field label={t('company.farmName')} value={nom}     onChangeText={setNom} />
-      <View style={st.row2}>
-        <Field label={t('company.address')} value={adresse} onChangeText={setAdresse} />
-        <Field label={t('company.zip')}     value={zip}     onChangeText={setZip} />
-      </View>
-      <View style={st.row2}>
-        <Field label={t('company.country')}   value={country} onChangeText={setCountry} />
-        <Field label={t('company.latitude')}  value={lat}     onChangeText={setLat} keyboardType="decimal-pad" />
-        <Field label={t('company.longitude')} value={lng}     onChangeText={setLng} keyboardType="decimal-pad" />
-      </View>
+      <Field label={t('company.farmName')} value={nom} onChangeText={setNom} placeholder="Ex: Ferme des Blés" />
+
+      {Platform.OS === 'web' && MapPicker ? (
+        /* ── Version web : carte interactive ── */
+        <MapPicker onZonesChange={setZones} />
+      ) : (
+        /* ── Version mobile : champs manuels ── */
+        <>
+          <View style={st.row2}>
+            <Field label={t('company.address')} value={adresse} onChangeText={setAdresse} />
+            <Field label={t('company.zip')}     value={zip}     onChangeText={setZip} />
+          </View>
+          <View style={st.row2}>
+            <Field label={t('company.country')}   value={country} onChangeText={setCountry} />
+            <Field label={t('company.latitude')}  value={lat}     onChangeText={setLat} keyboardType="decimal-pad" />
+            <Field label={t('company.longitude')} value={lng}     onChangeText={setLng} keyboardType="decimal-pad" />
+          </View>
+        </>
+      )}
+
+      {/* Résumé zones sélectionnées */}
+      {Platform.OS === 'web' && zones.length > 0 && (
+        <View style={st.zonesSummary}>
+          <Text style={st.zonesSummaryTxt}>
+            ✓ {zones.length} zone{zones.length > 1 ? 's' : ''} sélectionnée{zones.length > 1 ? 's' : ''} → {zones.length} parcelle{zones.length > 1 ? 's' : ''} seront créées
+          </Text>
+        </View>
+      )}
+
       <TouchableOpacity style={[st.btn, saving && st.btnDisabled]} onPress={handleCreate} disabled={saving}>
         {saving
           ? <ActivityIndicator color="#fff" size="small" />
@@ -501,8 +863,16 @@ export default function CompanyScreen({ navigation }) {
   };
 
   const handleFarmCreated = (farm) => {
-    setFarmsList(prev => [{ ...farm, parcelles_count: 0 }, ...prev]);
+    setFarmsList(prev => [farm, ...prev]);
     setShowAddFarm(false);
+  };
+
+  const handleFarmChanged = (updatedFarm) => {
+    setFarmsList(prev => prev.map(f => f.id === updatedFarm.id ? { ...f, ...updatedFarm } : f));
+  };
+
+  const handleFarmDeleted = (farmId) => {
+    setFarmsList(prev => prev.filter(f => f.id !== farmId));
   };
 
   const handleMemberInvited = () => {
@@ -556,7 +926,7 @@ export default function CompanyScreen({ navigation }) {
             )}
             {farmsList.length === 0 && !showAddFarm
               ? <Text style={st.empty}>{t('company.noFarms')}</Text>
-              : farmsList.map(f => <FarmCard key={f.id} farm={f} />)
+              : farmsList.map(f => <FarmCard key={f.id} farm={f} canManage={canManage} onChanged={handleFarmChanged} onDeleted={handleFarmDeleted} />)
             }
           </SectionCard>
 
@@ -640,6 +1010,8 @@ const st = StyleSheet.create({
   addBtnTxt:   { color: COLORS.accent, fontSize: 12, fontWeight: '700' },
 
   addForm:     { backgroundColor: '#111e2e', borderRadius: 10, padding: 16, gap: 12, borderWidth: 1, borderColor: COLORS.border, marginBottom: 4 },
+  zonesSummary:    { backgroundColor: COLORS.accent + '22', borderRadius: 8, borderWidth: 1, borderColor: COLORS.accent + '55', padding: 10 },
+  zonesSummaryTxt: { color: COLORS.accent, fontSize: 13, fontWeight: '600' },
   row2:        { flexDirection: 'row', gap: 12 },
   field:       { flex: 1, gap: 6 },
   fieldLabel:  { color: COLORS.textSecondary, fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
@@ -650,6 +1022,7 @@ const st = StyleSheet.create({
 
   farmCard:    { backgroundColor: '#111e2e', borderRadius: 10, borderWidth: 1, borderColor: COLORS.border, padding: 14, gap: 8 },
   farmCardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  farmCardArrow: { color: COLORS.textSecondary, fontSize: 11, paddingLeft: 4 },
   farmIcon:    { width: 40, height: 40, borderRadius: 10, backgroundColor: '#1a3520', alignItems: 'center', justifyContent: 'center' },
   farmName:    { color: COLORS.text, fontSize: 14, fontWeight: '700' },
   farmAddr:    { color: COLORS.textSecondary, fontSize: 12, marginTop: 2 },
@@ -657,6 +1030,16 @@ const st = StyleSheet.create({
   parcellesBadgeTxt: { color: COLORS.accent, fontSize: 11, fontWeight: '600' },
   gpsBadge:    { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#0a1520', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 },
   gpsCoords:   { color: COLORS.textSecondary, fontSize: 12, fontFamily: 'monospace' },
+  farmEditPanel:    { gap: 12, borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 12 },
+  farmEditSection:  { gap: 8 },
+  farmEditSectionTitle: { color: COLORS.textSecondary, fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
+  parcelleEditRow:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  parcelleBlock:      { gap: 6, marginBottom: 6 },
+  parcelleIconBtn:    { width: 38, height: 38, borderRadius: 8, backgroundColor: COLORS.accent + '22', borderWidth: 1, borderColor: COLORS.accent + '44', alignItems: 'center', justifyContent: 'center' },
+  parcelleDelBtn:     { width: 38, height: 38, borderRadius: 8, backgroundColor: '#ff444422', borderWidth: 1, borderColor: '#ff444444', alignItems: 'center', justifyContent: 'center' },
+  parcelleDetailPanel:{ backgroundColor: COLORS.bg + '88', borderRadius: 10, padding: 12, gap: 10, borderWidth: 1, borderColor: COLORS.accent + '33', marginTop: 2 },
+  row2:               { flexDirection: 'row', gap: 10 },
+  farmEditActions:    { flexDirection: 'row', gap: 10, marginTop: 4 },
 
   memberCardWrap: { gap: 0 },
   memberCard:  { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#111e2e', borderRadius: 10, borderWidth: 1, borderColor: COLORS.border, padding: 12 },

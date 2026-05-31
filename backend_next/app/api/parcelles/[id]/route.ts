@@ -40,6 +40,35 @@ export async function GET(request: Request, { params }: Params) {
   )
 }
 
+export async function PUT(request: Request, { params }: Params) {
+  const auth = await requireAuth(request)
+  if (isAuthError(auth)) return auth
+
+  const { id } = await params
+  const body = await request.json()
+  const { nom, superficie_ha, culture_type, position_lat, position_lng, geometry } = body
+
+  const result = await pool.query(
+    `UPDATE parcelle
+     SET nom           = COALESCE($1, nom),
+         superficie_ha = COALESCE($2, superficie_ha),
+         culture_type  = COALESCE($3, culture_type),
+         position_lat  = COALESCE($4, position_lat),
+         position_lng  = COALESCE($5, position_lng),
+         geometry      = COALESCE($6, geometry)
+     WHERE id = $7
+     RETURNING id, nom, superficie_ha, culture_type, position_lat, position_lng, geometry, farm_id`,
+    [nom ?? null, superficie_ha ?? null, culture_type ?? null, position_lat ?? null, position_lng ?? null,
+     geometry ? JSON.stringify(geometry) : null, Number(id)]
+  )
+
+  if (result.rowCount === 0) {
+    return NextResponse.json({ error: 'parcelle introuvable' }, { status: 404 })
+  }
+
+  return NextResponse.json({ parcelle: result.rows[0] }, { status: 200 })
+}
+
 export async function DELETE(request: Request, { params }: Params) {
   const auth = await requireAuth(request)
   if (isAuthError(auth)) return auth

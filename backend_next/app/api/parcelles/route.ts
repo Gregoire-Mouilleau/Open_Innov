@@ -32,17 +32,18 @@ export async function POST(request: Request) {
   if (isAuthError(auth)) return auth
 
   const body = await request.json()
-  const { farm_id, nom, superficie_ha, culture_type, position_lat, position_lng } = body
+  const { farm_id, nom, superficie_ha, culture_type, position_lat, position_lng, geometry } = body
 
   if (!farm_id || !nom) {
     return NextResponse.json({ error: 'farm_id et nom requis' }, { status: 400 })
   }
 
   const result = await pool.query(
-    `INSERT INTO parcelle (farm_id, nom, superficie_ha, culture_type, position_lat, position_lng, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, NOW())
-     RETURNING id, farm_id, nom, superficie_ha, culture_type, position_lat, position_lng`,
-    [farm_id, nom, superficie_ha ?? null, culture_type ?? null, position_lat ?? null, position_lng ?? null]
+    `INSERT INTO parcelle (farm_id, nom, superficie_ha, culture_type, position_lat, position_lng, geometry, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+     RETURNING id, farm_id, nom, superficie_ha, culture_type, position_lat, position_lng, geometry`,
+    [farm_id, nom, superficie_ha ?? null, culture_type ?? null, position_lat ?? null, position_lng ?? null,
+     geometry ? JSON.stringify(geometry) : null]
   )
 
   return NextResponse.json({ parcelle: result.rows[0] }, { status: 201 })

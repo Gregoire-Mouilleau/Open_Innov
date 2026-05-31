@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
 import { auth } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
@@ -11,6 +12,7 @@ export default function LoginScreen({ navigation }) {
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [loading,  setLoading]  = useState(false);
+  const [showPwd,  setShowPwd]  = useState(false);
   const { show } = useToast();
 
   const handleLogin = async () => {
@@ -62,16 +64,21 @@ export default function LoginScreen({ navigation }) {
 
           <View style={st.field}>
             <Text style={st.label}>Mot de passe</Text>
-            <TextInput
-              style={st.input}
-              placeholder="••••••••"
-              placeholderTextColor={COLORS.textSecondary}
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              editable={!loading}
-              onSubmitEditing={handleLogin}
-            />
+            <View style={st.inputWrap}>
+              <TextInput
+                style={[st.input, { paddingRight: 44 }]}
+                placeholder="••••••••"
+                placeholderTextColor={COLORS.textSecondary}
+                secureTextEntry={!showPwd}
+                value={password}
+                onChangeText={setPassword}
+                editable={!loading}
+                onSubmitEditing={handleLogin}
+              />
+              <TouchableOpacity onPress={() => setShowPwd(v => !v)} style={st.eyeBtn}>
+                <Ionicons name={showPwd ? 'eye-off' : 'eye'} size={20} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <TouchableOpacity
@@ -122,6 +129,11 @@ const st = StyleSheet.create({
     backgroundColor: COLORS.background, color: COLORS.text,
     borderWidth: 1, borderColor: COLORS.border, borderRadius: 8,
     paddingHorizontal: 14, paddingVertical: 11, fontSize: 14,
+  },
+  inputWrap: { position: 'relative' },
+  eyeBtn: {
+    position: 'absolute', right: 0, top: 0, bottom: 0,
+    paddingHorizontal: 12, justifyContent: 'center', alignItems: 'center',
   },
 
   btn:         { backgroundColor: COLORS.accent, borderRadius: 8, paddingVertical: 13, alignItems: 'center', marginTop: 8 },
