@@ -44,7 +44,8 @@ export default function DashboardScreen() {
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
   // Données réelles
-  const { data: dashData } = useDashboardData();
+  const { data: dashData, selectedFarmId, selectFarm } = useDashboardData();
+  const [showFarmPicker, setShowFarmPicker] = useState(false);
   // Extrait les valeurs brutes des capteurs depuis systems
   const sensorData = dashData?.systems?.reduce((acc, s) => {
     if (s.value !== '—') acc[s.id === 'temp' ? 'temperature' : s.id === 'humidity' ? 'humidite_air' : 'humidite_sol'] = s.value;
@@ -209,9 +210,38 @@ export default function DashboardScreen() {
           <Image source={require('../../../assets/logo.png')} style={styles.headerLogo} resizeMode="contain" />
           <Text style={styles.headerTitle}>TechFarm</Text>
         </View>
-        <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
-          <Text style={styles.addBtnText}>{t('dashboard.addWidget')}</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          {dashData.farmsList.length > 1 && (
+            <View style={styles.farmPickerWrap}>
+              <TouchableOpacity
+                style={styles.farmPickerBtn}
+                onPress={() => setShowFarmPicker((v) => !v)}
+              >
+                <Text style={styles.farmPickerText} numberOfLines={1}>{dashData.farmName}</Text>
+                <Text style={styles.farmPickerArrow}>{showFarmPicker ? '▲' : '▼'}</Text>
+              </TouchableOpacity>
+              {showFarmPicker && (
+                <View style={styles.farmDropdown}>
+                  {dashData.farmsList.map((f) => (
+                    <TouchableOpacity
+                      key={f.id}
+                      style={[styles.farmDropdownItem, f.id === selectedFarmId && styles.farmDropdownItemActive]}
+                      onPress={() => { selectFarm(f.id); setShowFarmPicker(false); }}
+                    >
+                      <Text style={[styles.farmDropdownText, f.id === selectedFarmId && styles.farmDropdownTextActive]}>{f.nom}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+          {dashData.farmsList.length === 1 && (
+            <Text style={styles.farmSingleLabel} numberOfLines={1}>{dashData.farmName}</Text>
+          )}
+          <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
+            <Text style={styles.addBtnText}>{t('dashboard.addWidget')}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View
@@ -303,7 +333,47 @@ const styles = StyleSheet.create({
     paddingVertical: isWeb ? 14 : 10,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+    zIndex: 100,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    zIndex: 100,
+  },
+  farmPickerWrap: { position: 'relative', zIndex: 200 },
+  farmPickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 6,
+    maxWidth: 160,
+  },
+  farmPickerText: { color: COLORS.text, fontSize: 13, fontWeight: '600', flexShrink: 1 },
+  farmPickerArrow: { color: COLORS.textSecondary, fontSize: 10 },
+  farmDropdown: {
+    position: 'absolute',
+    top: '100%',
+    right: 0,
+    marginTop: 4,
+    backgroundColor: COLORS.surface,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    minWidth: 180,
+    overflow: 'hidden',
+    ...Platform.select({ web: { boxShadow: '0 4px 16px rgba(0,0,0,0.35)' }, default: { elevation: 8 } }),
+  },
+  farmDropdownItem: { paddingHorizontal: 16, paddingVertical: 11 },
+  farmDropdownItemActive: { backgroundColor: COLORS.accent + '22' },
+  farmDropdownText: { color: COLORS.textSecondary, fontSize: 14 },
+  farmDropdownTextActive: { color: COLORS.accent, fontWeight: '700' },
+  farmSingleLabel: { color: COLORS.textSecondary, fontSize: 13, maxWidth: 130 },
   headerCenter: {
     position: 'absolute',
     left: 0,

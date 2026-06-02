@@ -6,12 +6,19 @@ export async function GET(request: Request) {
   const auth = await requireAuth(request)
   if (isAuthError(auth)) return auth
 
+  const userRes = await pool.query<{ company_id: number | null }>(
+    'SELECT company_id FROM users WHERE id = $1', [Number(auth.sub)]
+  )
+  const companyId = userRes.rows[0]?.company_id
+
   const result = await pool.query(
-    `SELECT f.id, f.nom, f.company_id, f.adresse, f.code_postal, f.country, f.created_at,
-            c.nom AS company_nom
+    `SELECT f.id, f.nom, f.company_id, f.adresse, f.code_postal, f.country,
+            f.latitude, f.longitude, f.created_at, c.nom AS company_nom
      FROM farm f
      LEFT JOIN company c ON c.id = f.company_id
-     ORDER BY f.created_at DESC`
+     WHERE f.company_id = $1
+     ORDER BY f.created_at DESC`,
+    [companyId]
   )
 
   return NextResponse.json({ farms: result.rows }, { status: 200 })

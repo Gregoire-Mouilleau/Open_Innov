@@ -9,20 +9,26 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const farm_id = searchParams.get('farm_id')
 
+  const userRes = await pool.query<{ company_id: number | null }>(
+    'SELECT company_id FROM users WHERE id = $1', [Number(auth.sub)]
+  )
+  const companyId = userRes.rows[0]?.company_id
+
   const query = farm_id
     ? `SELECT p.*, f.nom AS farm_nom
        FROM parcelle p
        LEFT JOIN farm f ON f.id = p.farm_id
-       WHERE p.farm_id = $1
+       WHERE p.farm_id = $1 AND f.company_id = $2
        ORDER BY p.created_at DESC`
     : `SELECT p.*, f.nom AS farm_nom
        FROM parcelle p
        LEFT JOIN farm f ON f.id = p.farm_id
+       WHERE f.company_id = $1
        ORDER BY p.created_at DESC`
 
   const result = farm_id
-    ? await pool.query(query, [Number(farm_id)])
-    : await pool.query(query)
+    ? await pool.query(query, [Number(farm_id), companyId])
+    : await pool.query(query, [companyId])
 
   return NextResponse.json({ parcelles: result.rows }, { status: 200 })
 }

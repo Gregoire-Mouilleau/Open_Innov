@@ -49,9 +49,10 @@
   "map": {
     "farmName": "Tartes Ferme",
     "satellite": "Vue Satellite",
+    "viewStreet": "Vue 3D",
+    "noGps": "Aucune coordonnée GPS renseignée",
     "cameraLive": "Caméra en Direct",
-    "alertHumidity": "⚠️  Alerte Humidité Sol Basse",
-    "temperature": "23,5°C"
+    "alertHumidity": "⚠️  Alerte Humidité Sol Basse"
   },
   "charts": {
     "tempHumidity": "Historique Température & Humidité",

@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../../constants/theme';
 import { t } from '../../i18n';
-import DevToastTester from '../../components/ui/DevToastTester'; // TODO: supprimer avant prod
 import useDashboardData from '../../hooks/useDashboardData';
 import { tokenStorage } from '../../services/api';
+import TechFarmMap from '../../components/map/TechFarmMap';
 
 // Décode le payload JWT sans vérification de signature (lecture seule)
 function decodeJWT(token) {
@@ -240,48 +240,118 @@ function RightPanel({ alertesList, activities }) {
   );
 }
 
-// ─── Farm map ─────────────────────────────────────────────────
+// ─── Parcelle map ──────────────────────────────────────────────
 
-function FarmMap() {
+// Génère un polygone rectangulaire approximatif à partir du centre GPS et de la superficie (ha)
+// Utilisé en fallback quand la géométrie réelle n'est pas renseignée en BDD
+function approxPolygon(lat, lng, superficieHa) {
+  const ha = superficieHa && superficieHa > 0 ? superficieHa : 5;
+  // Côté en mètres d'un carré équivalent
+  const sideM = Math.sqrt(ha * 10000);
+  // Conversion en degrés
+  const dlat = (sideM / 111000) / 2;
+  const dlng = (sideM / (111000 * Math.cos((lat * Math.PI) / 180))) / 2;
+  // Légère rotation pour moins de carrés parfaits (aspect plus naturel)
+  const skew = dlng * 0.18;
+  return {
+    type: 'Polygon',
+    coordinates: [[
+      [lng - dlng,        lat - dlat       ],
+      [lng + dlng + skew, lat - dlat       ],
+      [lng + dlng,        lat + dlat       ],
+      [lng - dlng - skew, lat + dlat       ],
+      [lng - dlng,        lat - dlat       ], // ferme le polygone
+    ]],
+  };
+}
+
+function ParcelleMapView({ parcellesList = [], systems, viewMode = 'satellite', selectedFarmId }) {
+  const [focusedIdx, setFocusedIdx] = React.useState(0);
+
+  // Réinitialise la parcelle focalisée quand la ferme change
+  React.useEffect(() => { setFocusedIdx(0); }, [selectedFarmId]);
+
+  const markers = parcellesList
+    .filter(p => p.position_lat && p.position_lng)
+    .map(p => ({
+      id:    String(p.id),
+      lat:   parseFloat(p.position_lat),
+      lng:   parseFloat(p.position_lng),
+      label: p.nom,
+    }));
+
+  // Délimitations GeoJSON des parcelles
+  // Priorité : geometry réelle en BDD → fallback polygone approximatif calculé depuis lat/lng + superficie
+  const polygons = parcellesList
+    .filter(p => p.position_lat && p.position_lng)
+    .map(p => {
+      let geom = p.geometry;
+      if (typeof geom === 'string') { try { geom = JSON.parse(geom); } catch { geom = null; } }
+
+      // Conversion format Leaflet [{lat,lng}] → GeoJSON Polygon
+      if (Array.isArray(geom) && geom.length >= 3 && geom[0]?.lat != null) {
+        const ring = [...geom, geom[0]].map(pt => [pt.lng, pt.lat]);
+        geom = { type: 'Polygon', coordinates: [ring] };
+      }
+
+      if (!geom || !geom.type || !geom.coordinates) {
+        geom = approxPolygon(
+          parseFloat(p.position_lat),
+          parseFloat(p.position_lng),
+          parseFloat(p.superficie_ha) || 5
+        );
+      }
+      return { id: String(p.id), geometry: geom, label: p.nom };
+    });
+
+  const hasMultiple = markers.length > 1;
+  const clampedIdx  = markers.length > 0 ? Math.min(focusedIdx, markers.length - 1) : 0;
+  const tempValue   = systems?.find(s => s.id === 'temp')?.value;
+
   return (
-    <ImageBackground
-      source={require('../../../assets/fond_farm.png')}
-      style={{ flex: 1, width: '100%', position: 'relative' }}
-      imageStyle={{ resizeMode: 'cover' }}
-    >
-      {/* Camera overlay */}
-      <View style={st.camOverlay}>
-        <ImageBackground
-          source={require('../../../assets/fond_camera.png')}
-          style={st.camFeed}
-          imageStyle={{ resizeMode: 'cover', borderRadius: 10 }}
-        >
-          <View style={{ flex: 1 }} />
-        </ImageBackground>
-        <View style={st.liveBadge}>
-          <View style={st.liveDot} />
-          <Text style={st.liveTxt}>{t('widgetContent.live')}</Text>
+    <View style={{ flex: 1, position: 'relative' }}>
+      <TechFarmMap
+        markers={markers}
+        polygons={polygons}
+        viewMode={viewMode}
+        focusedIndex={markers.length > 0 ? clampedIdx : null}
+      />
+
+      {/* Aucune coordonnée GPS */}
+      {markers.length === 0 && (
+        <View style={st.mapNoGps}>
+          <Text style={st.mapNoGpsTxt}>📍 {t('map.noGps')}</Text>
         </View>
-        <View style={st.camLabelBar}>
-          <Text style={st.camLabelTxt}>{t('map.cameraLive')}</Text>
+      )}
+
+      {/* Badge température */}
+      {tempValue && tempValue !== '—' && (
+        <View style={st.tempBadge}>
+          <Text style={st.tempTxt}>{tempValue} °C</Text>
         </View>
-      </View>
+      )}
 
-      {/* Alert pin */}
-      <View style={[st.alertPin, { top: '45%', left: '30%' }]}>
-        <Text style={st.alertPinTxt}>{t('map.alertHumidity')}</Text>
-      </View>
-
-      {/* Map pins */}
-      <Text style={[st.pin, { top: '18%', left: '53%' }]}>📍</Text>
-      <Text style={[st.pin, { top: '52%', left: '64%' }]}>📍</Text>
-      <View style={[st.blueDot, { top: '67%', left: '26%' }]} />
-
-      {/* Temperature badge */}
-      <View style={st.tempBadge}>
-        <Text style={st.tempTxt}>{t('map.temperature')}</Text>
-      </View>
-    </ImageBackground>
+      {/* Navigation parcelles (si plusieurs) */}
+      {hasMultiple && (
+        <View style={st.parcelleNav}>
+          <TouchableOpacity
+            style={st.parcelleNavBtn}
+            onPress={() => setFocusedIdx(i => (i - 1 + markers.length) % markers.length)}
+          >
+            <Text style={st.parcelleNavArrow}>‹</Text>
+          </TouchableOpacity>
+          <Text style={st.parcelleNavLabel} numberOfLines={1}>
+            {markers[clampedIdx]?.label ?? '—'}  ·  {clampedIdx + 1} / {markers.length}
+          </Text>
+          <TouchableOpacity
+            style={st.parcelleNavBtn}
+            onPress={() => setFocusedIdx(i => (i + 1) % markers.length)}
+          >
+            <Text style={st.parcelleNavArrow}>›</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -324,7 +394,7 @@ function TwoAreaChart({ d1, c1, d2, c2 }) {
   );
 }
 
-function AreaChart({ curve, color }) {
+function AreaChart({ curve, color, valueBadge }) {
   return (
     <View style={{ height: CHART_H, position: 'relative', marginHorizontal: 12 }}>
       <View style={[StyleSheet.absoluteFillObject, { flexDirection: 'row', alignItems: 'flex-end', gap: 1 }]}>
@@ -342,9 +412,11 @@ function AreaChart({ curve, color }) {
         ))}
       </View>
       <View style={{ position: 'absolute', top: '72%', left: 0, right: 0, height: 1, backgroundColor: '#f1c40f55' }} />
-      <View style={st.soilBadge}>
-        <Text style={st.soilBadgeTxt}>27%</Text>
-      </View>
+      {valueBadge && valueBadge !== '—' && (
+        <View style={st.soilBadge}>
+          <Text style={st.soilBadgeTxt}>{valueBadge}%</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -359,11 +431,12 @@ function AxisLbls({ labels }) {
 
 // ─── Charts row ───────────────────────────────────────────────
 
-function ChartsRow({ tempCurve, humidCurve, soilCurve, chartLabels }) {
+function ChartsRow({ tempCurve, humidCurve, soilCurve, chartLabels, systems }) {
   const tCurve = tempCurve?.length  ? tempCurve  : [0.5];
   const hCurve = humidCurve?.length ? humidCurve : [0.5];
   const sCurve = soilCurve?.length  ? soilCurve  : [0.5];
   const labels = chartLabels?.length ? chartLabels : ['—'];
+  const soilVal = systems?.find(s => s.id === 'soil')?.value;
   return (
     <View style={st.chartsRow}>
       <View style={[st.chartCard, { flex: 1 }]}>
@@ -384,7 +457,7 @@ function ChartsRow({ tempCurve, humidCurve, soilCurve, chartLabels }) {
         <View style={st.chartHdr}>
           <Text style={st.chartTitle}>{t('charts.soilHumidity')}</Text>
         </View>
-        <AreaChart curve={sCurve} color="#27ae60" />
+        <AreaChart curve={sCurve} color="#27ae60" valueBadge={soilVal} />
         <AxisLbls labels={labels} />
       </View>
     </View>
@@ -393,22 +466,55 @@ function ChartsRow({ tempCurve, humidCurve, soilCurve, chartLabels }) {
 
 // ─── Center column ────────────────────────────────────────────
 
-function CenterCol({ farmName, tempCurve, humidCurve, soilCurve, chartLabels }) {
+function CenterCol({ farmName, farmsList, selectedFarmId, selectFarm, parcellesList, tempCurve, humidCurve, soilCurve, chartLabels, systems }) {
+  const [showPicker, setShowPicker] = useState(false);
+  const [viewMode, setViewMode]     = useState('satellite');
   return (
     <View style={st.center}>
-      <View style={st.mapCard}>
-        <View style={st.farmHdr}>
-          <View style={st.farmNameRow}>
-            <View style={[st.farmDot, { backgroundColor: '#2ecc71' }]} />
+      {/* farmHdr sorti du mapCard pour éviter le clipping overflow:hidden */}
+      <View style={st.farmHdr}>
+        <View style={st.farmNameRow}>
+          <View style={[st.farmDot, { backgroundColor: '#2ecc71' }]} />
+          {farmsList.length > 1 ? (
+            <View style={{ position: 'relative', zIndex: 200 }}>
+              <TouchableOpacity
+                style={st.farmPickerBtn}
+                onPress={() => setShowPicker((v) => !v)}
+              >
+                <Text style={st.farmName}>{farmName || t('map.farmName')}</Text>
+                <Text style={{ color: COLORS.textSecondary, fontSize: 10, marginLeft: 6 }}>{showPicker ? '▲' : '▼'}</Text>
+              </TouchableOpacity>
+              {showPicker && (
+                <View style={st.farmDropdown}>
+                  {farmsList.map((f) => (
+                    <TouchableOpacity
+                      key={f.id}
+                      style={[st.farmDropdownItem, f.id === selectedFarmId && st.farmDropdownItemActive]}
+                      onPress={() => { selectFarm(f.id); setShowPicker(false); }}
+                    >
+                      <Text style={[st.farmDropdownText, f.id === selectedFarmId && st.farmDropdownTextActive]}>{f.nom}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          ) : (
             <Text style={st.farmName}>{farmName || t('map.farmName')}</Text>
-          </View>
-          <TouchableOpacity style={st.satBtn}>
-            <Text style={st.satTxt}>🛰  {t('map.satellite')}</Text>
-          </TouchableOpacity>
+          )}
         </View>
-        <FarmMap />
+        <TouchableOpacity style={st.satBtn} onPress={() => setViewMode(v => v === 'satellite' ? 'street' : 'satellite')}>
+          <Text style={st.satTxt}>{viewMode === 'satellite' ? `🛰  ${t('map.satellite')}` : `🗺  ${t('map.viewStreet')}`}</Text>
+        </TouchableOpacity>
       </View>
-      <ChartsRow tempCurve={tempCurve} humidCurve={humidCurve} soilCurve={soilCurve} chartLabels={chartLabels} />
+      <View style={st.mapCard}>
+        <ParcelleMapView
+          parcellesList={parcellesList}
+          systems={systems}
+          viewMode={viewMode}
+          selectedFarmId={selectedFarmId}
+        />
+      </View>
+      <ChartsRow tempCurve={tempCurve} humidCurve={humidCurve} soilCurve={soilCurve} chartLabels={chartLabels} systems={systems} />
     </View>
   );
 }
@@ -417,7 +523,7 @@ function CenterCol({ farmName, tempCurve, humidCurve, soilCurve, chartLabels }) 
 
 export default function DashboardDesktopScreen({ navigation }) {
   const [tab, setTab] = useState(t('nav.dashboard'));
-  const { data, loading } = useDashboardData();
+  const { data, loading, selectedFarmId, selectFarm } = useDashboardData();
   const { user, logout } = useAuth(navigation);
 
   return (
@@ -435,15 +541,18 @@ export default function DashboardDesktopScreen({ navigation }) {
         <LeftPanel systems={data.systems} loading={loading} />
         <CenterCol
           farmName={data.farmName}
+          farmsList={data.farmsList}
+          selectedFarmId={selectedFarmId}
+          selectFarm={selectFarm}
+          parcellesList={data.parcellesList ?? []}
           tempCurve={data.tempCurve}
           humidCurve={data.humidCurve}
           soilCurve={data.soilCurve}
           chartLabels={data.chartLabels}
+          systems={data.systems}
         />
         <RightPanel alertesList={data.alertes} activities={data.activities} />
       </View>
-      {/* TODO: supprimer avant prod */}
-      <DevToastTester />
     </View>
   );
 }
@@ -503,10 +612,27 @@ const st = StyleSheet.create({
 
   center: { flex: 1, flexDirection: 'column', backgroundColor: '#080f18', padding: 12, gap: 12 },
   mapCard: { flex: 1, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: COLORS.border },
-  farmHdr: { height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, backgroundColor: '#0d1520', borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  farmHdr: { height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, backgroundColor: '#0d1520', borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, zIndex: 50, overflow: 'visible' },
   farmNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   farmDot: { width: 10, height: 10, borderRadius: 5 },
   farmName: { color: COLORS.text, fontSize: 17, fontWeight: 'bold' },
+  farmPickerBtn: { flexDirection: 'row', alignItems: 'center' },
+  farmDropdown: {
+    position: 'absolute',
+    top: 30,
+    left: 0,
+    backgroundColor: '#0e1929',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    minWidth: 200,
+    zIndex: 300,
+    boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+  },
+  farmDropdownItem: { paddingHorizontal: 16, paddingVertical: 11 },
+  farmDropdownItemActive: { backgroundColor: COLORS.accent + '22' },
+  farmDropdownText: { color: COLORS.textSecondary, fontSize: 14 },
+  farmDropdownTextActive: { color: COLORS.accent, fontWeight: '700' },
   satBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.accent, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 7 },
   satTxt: { color: '#fff', fontSize: 12, fontWeight: '600' },
 
@@ -548,4 +674,12 @@ const st = StyleSheet.create({
   actRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 7 },
   actTitle: { color: COLORS.text, fontSize: 11, fontWeight: '600' },
   actTime: { color: COLORS.textSecondary, fontSize: 9 },
+
+  // Parcelle map overlays
+  mapNoGps: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0d1520cc' },
+  mapNoGpsTxt: { color: COLORS.textSecondary, fontSize: 13 },
+  parcelleNav: { position: 'absolute', bottom: 14, alignSelf: 'center', left: '50%', transform: [{ translateX: -110 }], width: 220, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(13,21,32,0.9)', borderRadius: 22, borderWidth: 1, borderColor: COLORS.border, paddingVertical: 5, paddingHorizontal: 8 },
+  parcelleNavBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 16, backgroundColor: '#1e2d3d' },
+  parcelleNavArrow: { color: COLORS.text, fontSize: 22, fontWeight: 'bold', lineHeight: 26 },
+  parcelleNavLabel: { color: COLORS.text, fontSize: 11, fontWeight: '600', flex: 1, textAlign: 'center' },
 });
