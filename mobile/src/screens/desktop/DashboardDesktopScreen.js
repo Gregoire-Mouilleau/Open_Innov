@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Platform, Image } from 'react-native';
 import { COLORS } from '../../constants/theme';
 import { t } from '../../i18n';
 import useDashboardData from '../../hooks/useDashboardData';
@@ -46,6 +46,28 @@ function useAuth(navigation) {
 
 // ─── Data ─────────────────────────────────────────────────────
 // Les données statiques ci-dessous sont des fallbacks — remplacées par useDashboardData au runtime
+
+// ─── Caméras publiques de démonstration ─────────────────────
+const CAMERAS_DATA = [
+  {
+    id: 1,
+    name: 'Champ Blé — Vue Aérienne',
+    location: 'Ferme Nord',
+    src: 'https://www.youtube.com/embed/ydYDqZQpim8?autoplay=1&controls=0&rel=0&modestbranding=1&disablekb=1',
+    thumb: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&q=80',
+    icon: '🌾',
+    status: 'live',
+  },
+  {
+    id: 2,
+    name: 'Parcelle Maraichère',
+    location: 'Parcelle Centre',
+    src: 'https://www.youtube.com/embed/1EiC9bvVGnk?autoplay=1&controls=0&rel=0&modestbranding=1&disablekb=1',
+    thumb: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&q=80',
+    icon: '🥦',
+    status: 'live',
+  },
+];
 
 const SYSTEMS_FALLBACK = [
   { id: 'temp',     icon: '🌡️', value: '—', unit: '°C',   arrow: '—', aC: '#e67e22', bg: '#2a1500', bc: '#e67e22' },
@@ -206,6 +228,21 @@ function Navbar({ tab, setTab, user, onLogin, onLogout, onSettings, onCompany })
   );
 }
 
+// ─── Camera pulse dot ────────────────────────────────────────
+function CamPulse() {
+  const [big, setBig] = React.useState(false);
+  React.useEffect(() => {
+    const id = setInterval(() => setBig(v => !v), 900);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <View style={{
+      width: big ? 7 : 5, height: big ? 7 : 5, borderRadius: 4,
+      backgroundColor: '#e74c3c', opacity: big ? 1 : 0.55,
+    }} />
+  );
+}
+
 // ─── Left panel ───────────────────────────────────────────────
 
 const NAV_ITEMS = [
@@ -215,11 +252,9 @@ const NAV_ITEMS = [
   { key: 'alertes',   icon: '◇', label: 'Alertes'        },
   { key: 'reports',   icon: '☰', label: 'Rapports'       },
   { key: 'history',   icon: '⊙', label: 'Historique'     },
-  { key: 'settings',  icon: '⚙', label: 'Paramètres'     },
 ];
 
-function LeftPanel({ systems, loading }) {
-  const [activeKey, setActiveKey] = React.useState('overview');
+function LeftPanel({ systems, loading, activeKey, setActiveKey }) {
   const temp = systems?.find(s => s.id === 'temp');
   const hum  = systems?.find(s => s.id === 'humidity');
   const now  = new Date().toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '');
@@ -243,6 +278,55 @@ function LeftPanel({ systems, loading }) {
           );
         })}
       </View>
+
+      {/* Caméras widget */}
+      <TouchableOpacity
+        style={[st.camSideCard, activeKey === 'cameras' && { borderColor: COLORS.accent }]}
+        onPress={() => setActiveKey('cameras')}
+        activeOpacity={0.88}
+      >
+        {/* Header */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <Text style={st.sideSecLabel}>CAMÉRAS</Text>
+          <View style={st.camSideLivePill}>
+            <CamPulse />
+            <Text style={{ color: '#e74c3c', fontSize: 9, fontWeight: '800', letterSpacing: 0.5 }}>LIVE</Text>
+          </View>
+        </View>
+
+        {/* Preview — image terrain */}
+        <View style={st.camSidePreview}>
+          <Image
+            source={{ uri: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=300&q=75' }}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 7 }}
+            resizeMode="cover"
+          />
+          {/* Overlay sombre */}
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 7 }} />
+          {/* Corner brackets */}
+          <View style={[st.camBracket, { top: 6, left: 6, borderTopWidth: 2, borderLeftWidth: 2 }]} />
+          <View style={[st.camBracket, { top: 6, right: 6, borderTopWidth: 2, borderRightWidth: 2 }]} />
+          <View style={[st.camBracket, { bottom: 6, left: 6, borderBottomWidth: 2, borderLeftWidth: 2 }]} />
+          <View style={[st.camBracket, { bottom: 6, right: 6, borderBottomWidth: 2, borderRightWidth: 2 }]} />
+          {/* Timestamp */}
+          <View style={st.camSideTimestamp}>
+            <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 8, fontFamily: 'monospace' }}>
+              {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </Text>
+          </View>
+        </View>
+
+        {/* Footer */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+          <View>
+            <Text style={{ color: COLORS.text, fontSize: 11, fontWeight: '700' }}>{CAMERAS_DATA[0].name}</Text>
+            <Text style={{ color: COLORS.textSecondary, fontSize: 9, marginTop: 1 }}>
+              {CAMERAS_DATA.length} caméra{CAMERAS_DATA.length > 1 ? 's' : ''} disponible{CAMERAS_DATA.length > 1 ? 's' : ''}
+            </Text>
+          </View>
+          <Text style={{ color: COLORS.accent, fontSize: 16, fontWeight: '300' }}>›</Text>
+        </View>
+      </TouchableOpacity>
 
       {/* Spacer */}
       <View style={{ flex: 1 }} />
@@ -703,10 +787,345 @@ function CenterCol({ farmName, farmsList, selectedFarmId, selectFarm, parcellesL
   );
 }
 
+// ─── Composant iframe web-only ──────────────────────────────
+function CamEmbed({ src }) {
+  if (Platform.OS !== 'web') {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0a1422' }}>
+        <Text style={{ color: COLORS.textSecondary, fontSize: 12 }}>Vidéo non supportée sur mobile</Text>
+      </View>
+    );
+  }
+  return React.createElement('iframe', {
+    src,
+    style: { width: '100%', height: '100%', border: 'none', borderRadius: 8 },
+    allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture',
+    allowFullScreen: true,
+    loading: 'lazy',
+  });
+}
+
+// ── Page Caméras ─────────────────────────────────────────────
+function CamerasPage({ selectedCam, setSelectedCam }) {
+
+  return (
+    <View style={{ flex: 1, flexDirection: 'column', backgroundColor: '#080f18' }}>
+      {/* Header */}
+      <View style={[st.pagePad, { flex: 0, paddingBottom: 0 }]}>
+        <View style={st.pageHdr}>
+          <Text style={st.pageTitle}>Caméras</Text>
+          <Text style={st.pageSub}>{CAMERAS_DATA.length} sources disponibles · Flux publics de démonstration</Text>
+        </View>
+      </View>
+
+        {selectedCam ? null : (
+        <ScrollView style={{ flex: 1, padding: 24 }} showsVerticalScrollIndicator={false}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
+            {CAMERAS_DATA.map(cam => (
+              <TouchableOpacity
+                key={cam.id}
+                style={st.camCard}
+                onPress={() => setSelectedCam(cam)}
+                activeOpacity={0.85}
+              >
+                {/* Thumbnail image statique */}
+                <View style={st.camThumbWrap}>
+                  <Image
+                    source={{ uri: cam.thumb }}
+                    style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                    resizeMode="cover"
+                  />
+                  {/* Overlay sombre */}
+                  <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.18)' }} />
+                  <View style={st.camLivePill}>
+                    <CamPulse />
+                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>LIVE</Text>
+                  </View>
+                  <View style={st.camPlayBtn}>
+                    <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.6)' }}>
+                      <Text style={{ color: '#fff', fontSize: 20, marginLeft: 4 }}>▶</Text>
+                    </View>
+                  </View>
+                </View>
+                <View style={{ padding: 12 }}>
+                  <Text style={{ color: COLORS.text, fontSize: 13, fontWeight: '700' }}>{cam.icon} {cam.name}</Text>
+                  <Text style={{ color: COLORS.textSecondary, fontSize: 11, marginTop: 3 }}>📍 {cam.location}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+            {/* Carte Ajouter */}
+            <View style={[st.camCard, { alignItems: 'center', justifyContent: 'center', borderStyle: 'dashed', minHeight: 220, backgroundColor: 'transparent' }]}>
+              <Text style={{ fontSize: 36, marginBottom: 10 }}>📷</Text>
+              <Text style={{ color: COLORS.text, fontSize: 13, fontWeight: '700' }}>Ajouter une caméra</Text>
+              <Text style={{ color: COLORS.textSecondary, fontSize: 11, marginTop: 4, textAlign: 'center', maxWidth: 160 }}>Connectez un flux IoT ou une URL RTSP/HLS</Text>
+            </View>
+          </View>
+        </ScrollView>
+        )}
+    </View>
+  );
+}
+
+// ─── Pages additionnelles ─────────────────────────────────────
+
+// ── Fermes ──────────────────────────────────────────
+function FermesPage({ farmsList, parcellesList }) {
+  return (
+    <ScrollView style={st.pagePad} showsVerticalScrollIndicator={false}>
+      <View style={st.pageHdr}>
+        <Text style={st.pageTitle}>Fermes</Text>
+        <Text style={st.pageSub}>{farmsList.length} ferme{farmsList.length !== 1 ? 's' : ''} enregistrée{farmsList.length !== 1 ? 's' : ''}</Text>
+      </View>
+      {farmsList.length === 0 ? (
+        <View style={st.emptyState}>
+          <Text style={st.emptyIco}>⌂</Text>
+          <Text style={st.emptyTxt}>Aucune ferme disponible</Text>
+        </View>
+      ) : (
+        <View style={st.farmGrid}>
+          {farmsList.map(farm => {
+            const farmParcelles = parcellesList.filter(p => p.farm_id === farm.id);
+            return (
+              <View key={farm.id} style={st.farmGridCard}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <View style={{ width: 44, height: 44, borderRadius: 10, backgroundColor: COLORS.accent + '22', alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ fontSize: 22 }}>⌂</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: COLORS.text, fontSize: 15, fontWeight: '700' }}>{farm.nom}</Text>
+                    <Text style={{ color: COLORS.textSecondary, fontSize: 11, marginTop: 1 }}>{farm.localisation ?? '—'}</Text>
+                  </View>
+                  <View style={{ backgroundColor: '#1a3a1a', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 5 }}>
+                    <Text style={{ color: COLORS.accent, fontSize: 10, fontWeight: '700' }}>ACTIF</Text>
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {[
+                    { val: farmParcelles.length || 0, lbl: 'Parcelles' },
+                    { val: '—', lbl: 'Capteurs' },
+                    { val: '—', lbl: 'Alertes' },
+                  ].map(s => (
+                    <View key={s.lbl} style={st.farmStatChip}>
+                      <Text style={st.farmStatVal}>{s.val}</Text>
+                      <Text style={st.farmStatLbl}>{s.lbl}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
+    </ScrollView>
+  );
+}
+
+// ── Capteurs ─────────────────────────────────────────
+const DEMO_CAPTEURS = [
+  { id: 1, nom: 'Capteur T° #1',   type: 'Température',  parcelle: 'Parcelle Nord',   valeur: '24.3°C', status: 'online',  maj: 'Il y a 2 min' },
+  { id: 2, nom: 'Capteur Hum. #1', type: 'Humidité Air', parcelle: 'Parcelle Nord',   valeur: '65.2%',  status: 'online',  maj: 'Il y a 2 min' },
+  { id: 3, nom: 'Capteur Sol #1',  type: 'Humidité Sol', parcelle: 'Parcelle Centre', valeur: '42.8%',  status: 'online',  maj: 'Il y a 5 min' },
+  { id: 4, nom: 'Capteur T° #2',   type: 'Température',  parcelle: 'Parcelle Sud',    valeur: '—',      status: 'offline', maj: 'Il y a 2h'    },
+];
+
+function CapteursPge() {
+  const [filter, setFilter] = React.useState('all');
+  const filtered = filter === 'all' ? DEMO_CAPTEURS : DEMO_CAPTEURS.filter(c => c.status === filter);
+  return (
+    <ScrollView style={st.pagePad} showsVerticalScrollIndicator={false}>
+      <View style={st.pageHdr}>
+        <Text style={st.pageTitle}>Capteurs</Text>
+        <Text style={st.pageSub}>{DEMO_CAPTEURS.filter(c => c.status === 'online').length} / {DEMO_CAPTEURS.length} en ligne</Text>
+      </View>
+      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+        {[['all','Tous'], ['online','En ligne'], ['offline','Hors ligne']].map(([k, lbl]) => (
+          <TouchableOpacity key={k} style={[st.filterChip, filter === k && st.filterChipActive]} onPress={() => setFilter(k)}>
+            <Text style={[st.filterChipTxt, filter === k && st.filterChipTxtActive]}>{lbl}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <View style={st.tableCard}>
+        <View style={st.tableHeader}>
+          <Text style={[st.tableHd, { flex: 2 }]}>Capteur</Text>
+          <Text style={[st.tableHd, { flex: 1.5 }]}>Type</Text>
+          <Text style={[st.tableHd, { flex: 2 }]}>Parcelle</Text>
+          <Text style={[st.tableHd, { flex: 1 }]}>Valeur</Text>
+          <Text style={[st.tableHd, { flex: 1.2 }]}>Statut</Text>
+          <Text style={[st.tableHd, { flex: 1.5 }]}>Dernière MAJ</Text>
+        </View>
+        {filtered.map((c, i) => (
+          <View key={c.id} style={[st.tableRow, i % 2 === 1 && { backgroundColor: '#0a1421' }]}>
+            <Text style={[st.tableTd, { flex: 2, color: COLORS.text, fontWeight: '600' }]}>{c.nom}</Text>
+            <Text style={[st.tableTd, { flex: 1.5 }]}>{c.type}</Text>
+            <Text style={[st.tableTd, { flex: 2 }]}>{c.parcelle}</Text>
+            <Text style={[st.tableTd, { flex: 1, color: COLORS.accent, fontWeight: '700' }]}>{c.valeur}</Text>
+            <View style={{ flex: 1.2, justifyContent: 'center' }}>
+              <View style={{ backgroundColor: c.status === 'online' ? '#1a3a1a' : '#3a1a1a', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5, alignSelf: 'flex-start' }}>
+                <Text style={{ color: c.status === 'online' ? COLORS.accent : '#e74c3c', fontSize: 10, fontWeight: '700' }}>
+                  {c.status === 'online' ? 'EN LIGNE' : 'HORS LIGNE'}
+                </Text>
+              </View>
+            </View>
+            <Text style={[st.tableTd, { flex: 1.5 }]}>{c.maj}</Text>
+          </View>
+        ))}
+      </View>
+    </ScrollView>
+  );
+}
+
+// ── Alertes ──────────────────────────────────────────
+function AlertesPge({ alertesList }) {
+  const [filter, setFilter] = React.useState('all');
+  const allAlertes = [
+    ...ALERTES_DEMO,
+    ...alertesList.map(a => ({
+      id: 'api-' + a.id,
+      typeLabel: a.title,
+      ferme: '—',
+      capteur: '—',
+      message: a.title,
+      severite: a.color === '#e74c3c' ? 'Élevée' : 'Moyenne',
+      sColor: a.color,
+      heure: a.sub,
+    })),
+  ];
+  const filtered =
+    filter === 'all'      ? allAlertes :
+    filter === 'critical' ? allAlertes.filter(a => a.sColor === '#e74c3c') :
+                            allAlertes.filter(a => a.sColor === '#f39c12');
+  return (
+    <ScrollView style={st.pagePad} showsVerticalScrollIndicator={false}>
+      <View style={st.pageHdr}>
+        <Text style={st.pageTitle}>Alertes</Text>
+        <Text style={st.pageSub}>{allAlertes.length} alerte{allAlertes.length !== 1 ? 's' : ''} active{allAlertes.length !== 1 ? 's' : ''}</Text>
+      </View>
+      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+        {[['all','Toutes'], ['critical','Critiques'], ['warning','Moyennes']].map(([k, lbl]) => (
+          <TouchableOpacity key={k} style={[st.filterChip, filter === k && st.filterChipActive]} onPress={() => setFilter(k)}>
+            <Text style={[st.filterChipTxt, filter === k && st.filterChipTxtActive]}>{lbl}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <View style={st.tableCard}>
+        <View style={st.tableHeader}>
+          <Text style={[st.tableHd, { width: 90 }]}>Sévérité</Text>
+          <Text style={[st.tableHd, { flex: 1.5 }]}>Type</Text>
+          <Text style={[st.tableHd, { flex: 1 }]}>Ferme</Text>
+          <Text style={[st.tableHd, { flex: 1.5 }]}>Capteur</Text>
+          <Text style={[st.tableHd, { flex: 2 }]}>Message</Text>
+          <Text style={[st.tableHd, { width: 70 }]}>Heure</Text>
+        </View>
+        {filtered.length === 0 ? (
+          <View style={{ padding: 32, alignItems: 'center' }}>
+            <Text style={{ color: COLORS.textSecondary, fontSize: 13 }}>Aucune alerte dans cette catégorie</Text>
+          </View>
+        ) : filtered.map((a, i) => (
+          <View key={a.id} style={[st.tableRow, { borderLeftWidth: 3, borderLeftColor: a.sColor }, i % 2 === 1 && { backgroundColor: '#0a1421' }]}>
+            <View style={{ width: 90, justifyContent: 'center' }}>
+              <View style={{ backgroundColor: a.sColor + '22', paddingHorizontal: 6, paddingVertical: 3, borderRadius: 5, alignSelf: 'flex-start' }}>
+                <Text style={{ color: a.sColor, fontSize: 10, fontWeight: '700' }}>{a.severite.toUpperCase()}</Text>
+              </View>
+            </View>
+            <Text style={[st.tableTd, { flex: 1.5, color: COLORS.text, fontWeight: '600' }]}>{a.typeLabel}</Text>
+            <Text style={[st.tableTd, { flex: 1 }]}>{a.ferme}</Text>
+            <Text style={[st.tableTd, { flex: 1.5 }]}>{a.capteur}</Text>
+            <Text style={[st.tableTd, { flex: 2 }]} numberOfLines={2}>{a.message}</Text>
+            <Text style={[st.tableTd, { width: 70 }]}>{a.heure}</Text>
+          </View>
+        ))}
+      </View>
+    </ScrollView>
+  );
+}
+
+// ── Rapports ─────────────────────────────────────────
+function RapportsPge({ systems }) {
+  const soil = systems?.find(s => s.id === 'soil');
+  const soilVal = soil && soil.value !== '—' ? parseFloat(soil.value) : 54;
+  return (
+    <ScrollView style={st.pagePad} showsVerticalScrollIndicator={false}>
+      <View style={st.pageHdr}>
+        <Text style={st.pageTitle}>Rapports</Text>
+        <Text style={st.pageSub}>Données des dernières 24h</Text>
+      </View>
+      <View style={[st.kpiRow, { marginBottom: 16 }]}>
+        {[
+          { label: 'Temp. moy.', value: '21.4°C', icon: '🌡', bg: '#2a1500', iconC: '#e67e22' },
+          { label: 'Hum. moy.',  value: '68.5%',  icon: '💧', bg: '#001529', iconC: '#3498db' },
+          { label: 'Hum. sol',   value: soilVal + '%', icon: '🌱', bg: '#0a2010', iconC: '#27ae60' },
+          { label: 'Alertes 24h', value: String(ALERTES_DEMO.length), icon: '◇', bg: '#2a1000', iconC: '#e74c3c' },
+        ].map(c => (
+          <View key={c.label} style={st.kpiCard}>
+            <View style={[st.kpiIconWrap, { backgroundColor: c.bg }]}>
+              <Text style={[st.kpiIcon, { color: c.iconC }]}>{c.icon}</Text>
+            </View>
+            <View>
+              <Text style={st.kpiValue}>{c.value}</Text>
+              <Text style={st.kpiLabel}>{c.label}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+      <View style={[st.tableCard, { padding: 16, marginBottom: 14 }]}>
+        <Text style={{ color: COLORS.text, fontSize: 14, fontWeight: '700', marginBottom: 12 }}>Température (24h)</Text>
+        <SvgLineChart data={TEMP_DEMO} color="#e67e22" yMin={10} yMax={32} yTicks={[10,15,20,25,30]} xTicks={CHART_XTICKS} unit="°C" dataLabels={HOURS_24} />
+      </View>
+      <View style={[st.tableCard, { padding: 16, marginBottom: 14 }]}>
+        <Text style={{ color: COLORS.text, fontSize: 14, fontWeight: '700', marginBottom: 12 }}>Humidité Air (24h)</Text>
+        <SvgLineChart data={HUMID_DEMO} color="#3498db" yMin={50} yMax={100} yTicks={[50,60,70,80,90,100]} xTicks={CHART_XTICKS} unit="%" dataLabels={HOURS_24} />
+      </View>
+    </ScrollView>
+  );
+}
+
+// ── Historique ────────────────────────────────────────
+const DEMO_HISTORIQUE = [
+  { id: 'h1', heure: '21:02', type: 'alerte',  label: 'Température élevée',   detail: '28.4°C · Capteur T° #3',  color: '#e74c3c' },
+  { id: 'h2', heure: '20:45', type: 'alerte',  label: 'Humidité sol basse',   detail: '28% · Capteur Sol #1',    color: '#f39c12' },
+  { id: 'h3', heure: '20:00', type: 'mesure',  label: 'Mesure périodique',    detail: 'T° 26.1°C · Hum. 68%',   color: '#3498db' },
+  { id: 'h4', heure: '19:00', type: 'mesure',  label: 'Mesure périodique',    detail: 'T° 25.2°C · Hum. 70%',   color: '#3498db' },
+  { id: 'h5', heure: '18:00', type: 'mesure',  label: 'Mesure périodique',    detail: 'T° 24.0°C · Hum. 72%',   color: '#3498db' },
+  { id: 'h6', heure: '17:00', type: 'système', label: 'Capteur reconnecté',   detail: 'Capteur T° #2',           color: '#2ecc71' },
+  { id: 'h7', heure: '12:00', type: 'mesure',  label: 'Mesure périodique',    detail: 'T° 19.5°C · Hum. 74%',   color: '#3498db' },
+];
+
+function HistoriquePge({ alertesList }) {
+  const apiEvents = alertesList.map(a => ({
+    id: 'api-' + a.id, heure: a.sub, type: 'alerte', label: a.title, detail: '', color: a.color,
+  }));
+  const allEvents = [...apiEvents, ...DEMO_HISTORIQUE];
+  return (
+    <ScrollView style={st.pagePad} showsVerticalScrollIndicator={false}>
+      <View style={st.pageHdr}>
+        <Text style={st.pageTitle}>Historique</Text>
+        <Text style={st.pageSub}>Événements des dernières 24h</Text>
+      </View>
+      <View style={st.tableCard}>
+        {allEvents.map((e, i) => (
+          <View key={e.id} style={[st.histRow, i > 0 && { borderTopWidth: 1, borderTopColor: COLORS.border }]}>
+            <Text style={[st.histTime, { color: COLORS.textSecondary }]}>{e.heure}</Text>
+            <View style={[st.histDot, { backgroundColor: e.color }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: COLORS.text, fontSize: 13, fontWeight: '600' }}>{e.label}</Text>
+              {e.detail ? <Text style={{ color: COLORS.textSecondary, fontSize: 11, marginTop: 2 }}>{e.detail}</Text> : null}
+            </View>
+            <View style={{ backgroundColor: e.color + '22', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5 }}>
+              <Text style={{ color: e.color, fontSize: 10, fontWeight: '700', textTransform: 'uppercase' }}>{e.type}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+    </ScrollView>
+  );
+}
+
 // ─── Root ─────────────────────────────────────────────────────
 
 export default function DashboardDesktopScreen({ navigation }) {
   const [tab, setTab] = useState(t('nav.dashboard'));
+  const [activeKey, setActiveKey] = useState('overview');
+  const [selectedCam, setSelectedCam] = useState(null);
   const { data, loading, selectedFarmId, selectFarm } = useDashboardData();
   const { user, logout } = useAuth(navigation);
 
@@ -722,18 +1141,51 @@ export default function DashboardDesktopScreen({ navigation }) {
         onCompany={() => navigation?.navigate('Company')}
       />
       <View style={st.body}>
-        <LeftPanel systems={data.systems} loading={loading} />
-        <CenterCol
-          farmName={data.farmName}
-          farmsList={data.farmsList}
-          selectedFarmId={selectedFarmId}
-          selectFarm={selectFarm}
-          parcellesList={data.parcellesList ?? []}
-          systems={data.systems}
-          alertes={data.alertes}
-        />
-        <RightPanel alertesList={data.alertes} activities={data.activities} />
+        <LeftPanel systems={data.systems} loading={loading} activeKey={activeKey} setActiveKey={setActiveKey} />
+        {activeKey === 'overview' && (
+          <>
+            <CenterCol
+              farmName={data.farmName}
+              farmsList={data.farmsList}
+              selectedFarmId={selectedFarmId}
+              selectFarm={selectFarm}
+              parcellesList={data.parcellesList ?? []}
+              systems={data.systems}
+              alertes={data.alertes}
+            />
+            <RightPanel alertesList={data.alertes} activities={data.activities} />
+          </>
+        )}
+        {activeKey === 'farms'    && <FermesPage    farmsList={data.farmsList} parcellesList={data.parcellesList ?? []} />}
+        {activeKey === 'sensors'  && <CapteursPge   systems={data.systems} />}
+        {activeKey === 'alertes'  && <AlertesPge    alertesList={data.alertes} />}
+        {activeKey === 'reports'  && <RapportsPge   systems={data.systems} />}
+        {activeKey === 'history'  && <HistoriquePge alertesList={data.alertes} />}
+        {activeKey === 'cameras'  && <CamerasPage selectedCam={selectedCam} setSelectedCam={setSelectedCam} />}
       </View>
+
+      {/* Plein écran caméra — overlay au niveau racine, couvre tout */}
+      {selectedCam && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 9999, flexDirection: 'column' }}>
+          <View style={{ height: 48, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 12, backgroundColor: '#0d1520', borderBottomWidth: 1, borderBottomColor: '#1a2a3a' }}>
+            <TouchableOpacity
+              style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 7, backgroundColor: '#e74c3c' }}
+              onPress={() => setSelectedCam(null)}
+            >
+              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>✕  Fermer</Text>
+            </TouchableOpacity>
+            <Text style={{ color: COLORS.text, fontSize: 15, fontWeight: '700', flex: 1 }}>{selectedCam.icon} {selectedCam.name}</Text>
+            <Text style={{ color: COLORS.textSecondary, fontSize: 12 }}>{selectedCam.location}</Text>
+            <View style={st.camLivePill}>
+              <CamPulse />
+              <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>LIVE</Text>
+            </View>
+          </View>
+          <View style={{ flex: 1 }}>
+            <CamEmbed src={selectedCam.src} />
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -891,8 +1343,55 @@ const st = StyleSheet.create({
   actTitle: { color: COLORS.text, fontSize: 11, fontWeight: '600' },
   actTime: { color: COLORS.textSecondary, fontSize: 9 },
 
-  // Parcelle map overlays
-  mapNoGps: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0d1520cc' },
+  // ─── Extra page styles ────────────────────────────────────────
+  pagePad:  { flex: 1, padding: 24, backgroundColor: '#080f18' },
+  pageHdr:  { marginBottom: 20 },
+  pageTitle:{ color: COLORS.text, fontSize: 22, fontWeight: '800' },
+  pageSub:  { color: COLORS.textSecondary, fontSize: 13, marginTop: 4 },
+
+  farmGrid:     { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+  farmGridCard: { width: 280, backgroundColor: '#0d1520', borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 16 },
+  farmStatChip: { flex: 1, backgroundColor: '#080f18', borderRadius: 8, padding: 10, alignItems: 'center' },
+  farmStatVal:  { color: COLORS.text, fontSize: 18, fontWeight: '800' },
+  farmStatLbl:  { color: COLORS.textSecondary, fontSize: 10, marginTop: 2 },
+
+  filterChip:       { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: COLORS.border, backgroundColor: '#0d1520' },
+  filterChipActive: { backgroundColor: COLORS.accent, borderColor: COLORS.accent },
+  filterChipTxt:    { color: COLORS.textSecondary, fontSize: 12, fontWeight: '600' },
+  filterChipTxtActive: { color: '#fff' },
+
+  tableCard:   { backgroundColor: '#0d1520', borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, overflow: 'hidden', marginBottom: 14 },
+  tableHeader: { flexDirection: 'row', backgroundColor: '#0a1422', paddingHorizontal: 16, paddingVertical: 10 },
+  tableHd:     { color: COLORS.textSecondary, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  tableRow:    { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12, alignItems: 'center' },
+  tableTd:     { color: COLORS.textSecondary, fontSize: 12 },
+
+  histRow:  { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
+  histTime: { width: 55, fontSize: 12, fontWeight: '600', textAlign: 'right' },
+  histDot:  { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
+
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 60 },
+  emptyIco:   { fontSize: 48, marginBottom: 12 },
+  emptyTxt:   { color: COLORS.textSecondary, fontSize: 16 },
+
+  settingsSectionLbl: { color: COLORS.textSecondary, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 },
+
+  // ─── Camera sidebar widget
+  camSideCard: { backgroundColor: '#070e19', borderRadius: 10, borderWidth: 1, borderColor: '#1a2a3a', padding: 10, marginTop: 12 },
+  camSideLivePill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(231,76,60,0.12)', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5, borderWidth: 1, borderColor: 'rgba(231,76,60,0.3)' },
+  camSidePreview: { height: 90, borderRadius: 8, backgroundColor: '#020508', borderWidth: 1, borderColor: '#0e1e2e', overflow: 'hidden', alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  camSideScanGrid: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.06, backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.8) 3px, rgba(255,255,255,0.8) 4px)' },
+  camSideTimestamp: { position: 'absolute', bottom: 5, left: 7 },
+  camBracket: { position: 'absolute', width: 10, height: 10, borderColor: 'rgba(46,204,113,0.6)' },
+
+  // ─── Camera page
+  camCard: { width: 300, backgroundColor: '#0d1520', borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, overflow: 'hidden' },
+  camThumbWrap: { height: 170, backgroundColor: '#0a1422', position: 'relative' },
+  camThumbOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2 },
+  camLivePill: { position: 'absolute', top: 10, left: 10, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,0,0,0.75)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, zIndex: 3, borderWidth: 1, borderColor: '#e74c3c55' },
+  camPlayBtn: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', zIndex: 4 },
+
+  // Parcelle map overlays  mapNoGps: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0d1520cc' },
   mapNoGpsTxt: { color: COLORS.textSecondary, fontSize: 13 },
   parcelleNav: { position: 'absolute', bottom: 14, alignSelf: 'center', left: '50%', transform: [{ translateX: -110 }], width: 220, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(13,21,32,0.9)', borderRadius: 22, borderWidth: 1, borderColor: COLORS.border, paddingVertical: 5, paddingHorizontal: 8 },
   parcelleNavBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 16, backgroundColor: '#1e2d3d' },
