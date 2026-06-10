@@ -203,6 +203,21 @@ export const kits = {
   get: (id) => apiFetch(`/api/kits/${id}`),
 };
 
+// ─── Cultures ─────────────────────────────────────────────────────────────────
+
+export const cultures = {
+  /** Catalogue des cultures et leurs besoins (plages optimales) */
+  list: () => apiFetch('/api/cultures'),
+};
+
+// ─── Capteurs ─────────────────────────────────────────────────────────────────
+
+export const capteurs = {
+  /** @param {number} [farmId] capteurs (avec coordonnées) d'une ferme */
+  list: (farmId) =>
+    apiFetch(`/api/capteurs${farmId ? `?farm_id=${farmId}` : ''}`),
+};
+
 // ─── Mesures ──────────────────────────────────────────────────────────────────
 
 export const mesures = {
@@ -247,6 +262,17 @@ export const alertes = {
     if (opts.parcelleId) params.set('parcelle_id', String(opts.parcelleId));
     return apiFetch(`/api/alertes?${params.toString()}`);
   },
+  /** Marquer une alerte comme lue (ou non lue) */
+  markRead: (id, lu = true) =>
+    apiFetch(`/api/alertes/${id}`, { method: 'PATCH', body: JSON.stringify({ lu }) }),
+};
+
+// ─── Caméras ──────────────────────────────────────────────────────────────────
+
+export const cameras = {
+  /** @param {number} [farmId] filtre optionnel par ferme */
+  list: (farmId) =>
+    apiFetch(`/api/cameras${farmId ? `?farm_id=${farmId}` : ''}`),
 };
 
 // ─── Roles ───────────────────────────────────────────────────

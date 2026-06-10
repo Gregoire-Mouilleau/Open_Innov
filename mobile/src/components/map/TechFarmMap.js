@@ -1,15 +1,14 @@
 /**
- * TechFarmMap — composant carte universel
+ * TechFarmMap — composant carte universel (vue satellite)
  * - Web     : react-leaflet
  * - Natif   : WebView avec Leaflet via CDN
  *
  * Props:
- *   markers     : [{ id, lat, lng, label, color? }]
- *   polygons    : [{ id, geometry (GeoJSON Geometry), label }]  — délimitations parcelles
- *   viewMode    : 'satellite' | 'street'   (default: 'satellite')
- *                  'street' = vue 3D perspective (type Google Earth incliné)
- *   focusedIndex: number | null            (index du marker à centrer)
- *   style       : ViewStyle optionnel
+ *   markers      : [{ id, lat, lng, label, color? }]
+ *   polygons     : [{ id, geometry (GeoJSON Geometry), label }]  — délimitations parcelles
+ *   sensorMarkers: [{ id, lat, lng, icon, color, label }]
+ *   focusedIndex : number | null            (index du marker à centrer)
+ *   style        : ViewStyle optionnel
  */
 import React, { useEffect, useRef } from 'react';
 import { Platform, View, StyleSheet } from 'react-native';
@@ -33,7 +32,15 @@ if (Platform.OS === 'web') {
     shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
   });
 
-  function MapController({ markers, polygons, focusedIndex, viewMode }) {
+  // Pastille colorée + emoji pour un capteur
+  var sensorDivIcon = (icon, color) => L.divIcon({
+    html: `<div style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:${color || '#3498db'};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.55);font-size:14px;line-height:1;">${icon || '◎'}</div>`,
+    className: '',
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+  });
+
+  function MapController({ markers, polygons, focusedIndex }) {
     const map = useMap();
     const isFirstRef = useRef(true);
     useEffect(() => {
@@ -49,7 +56,7 @@ if (Platform.OS === 'web') {
         if (poly?.geometry?.coordinates?.[0]) {
           poly.geometry.coordinates[0].forEach(([lng, lat]) => bounds.extend([lat, lng]));
         }
-        const opts = { padding: [30, 30], maxZoom: viewMode === 'street' ? 17 : 16 };
+        const opts = { padding: [30, 30], maxZoom: 16 };
         if (isFirst) map.fitBounds(bounds, opts);
         else map.flyToBounds(bounds, { ...opts, duration: 0.9 });
       } else {
@@ -59,35 +66,22 @@ if (Platform.OS === 'web') {
           p?.geometry?.coordinates?.[0]?.forEach(([lng, lat]) => allCoords.push([lat, lng]));
         });
         const bounds = L.latLngBounds(allCoords);
-        const maxZoom = viewMode === 'street' ? 16 : 15;
-        if (isFirst) map.fitBounds(bounds, { padding: [40, 40], maxZoom });
-        else map.flyToBounds(bounds, { padding: [40, 40], maxZoom, duration: 1 });
+        if (isFirst) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+        else map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 15, duration: 1 });
       }
-    }, [focusedIndex, viewMode, markers.length]);
+    }, [focusedIndex, markers.length]);
     return null;
   }
 
-  LeafletMap = function TechFarmMapWeb({ markers = [], polygons = [], viewMode = 'satellite', focusedIndex = null, style }) {
+  LeafletMap = function TechFarmMapWeb({ markers = [], polygons = [], sensorMarkers = [], focusedIndex = null, style }) {
     const center = markers.length > 0
       ? [markers[0].lat, markers[0].lng]
       : [46.5, 2.5];
 
-    // Mode 'street' : vue 3D inclinée style Google Earth (même tuiles satellite + CSS perspective)
-    const perspWrap = viewMode === 'street'
-      ? {
-          position: 'absolute',
-          width: '160%', height: '160%',
-          left: '-30%', top: '-30%',
-          transformOrigin: 'center 80%',
-          transform: 'perspective(700px) rotateX(42deg)',
-          transition: 'transform 0.45s ease',
-        }
-      : { position: 'absolute', inset: '0', transition: 'transform 0.45s ease' };
-
     return (
       <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', ...(style || {}) }}>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-        <div style={perspWrap}>
+        <div style={{ position: 'absolute', inset: '0' }}>
           <MapContainer center={center} zoom={13} style={{ width: '100%', height: '100%', minHeight: 260 }}>
             <TileLayer url={TILE_SATELLITE.url} attribution={TILE_SATELLITE.attribution} />
             {/* Délimitations des parcelles */}
@@ -112,7 +106,13 @@ if (Platform.OS === 'web') {
                 <Tooltip sticky direction="top" offset={[0, -28]}><strong>{m.label}</strong></Tooltip>
               </Marker>
             ))}
-            <MapController markers={markers} polygons={polygons} focusedIndex={focusedIndex} viewMode={viewMode} />
+            {/* Marqueurs capteurs (icône par type) */}
+            {sensorMarkers.map(s => (
+              <Marker key={`s-${s.id}`} position={[s.lat, s.lng]} icon={sensorDivIcon(s.icon, s.color)}>
+                <Tooltip direction="top" offset={[0, -14]}>{s.icon} <strong>{s.label}</strong></Tooltip>
+              </Marker>
+            ))}
+            <MapController markers={markers} polygons={polygons} focusedIndex={focusedIndex} />
           </MapContainer>
         </div>
       </div>
@@ -125,13 +125,12 @@ let NativeMap = null;
 if (Platform.OS !== 'web') {
   const { WebView } = require('react-native-webview');
 
-  function buildHtml(markers, polygons, viewMode, focusedIndex) {
-    const zoom = viewMode === 'street' ? 17 : 15;
+  function buildHtml(markers, polygons, focusedIndex, sensorMarkers = []) {
     const focused = (focusedIndex !== null && focusedIndex !== undefined && markers[focusedIndex])
       ? markers[focusedIndex]
       : markers[0];
     const center = focused
-      ? `[${focused.lat}, ${focused.lng}], ${zoom}`
+      ? `[${focused.lat}, ${focused.lng}], 15`
       : `[46.5, 2.5], 6`;
     const markersJs = markers
       .map(m => `L.marker([${m.lat}, ${m.lng}]).addTo(map).bindPopup(${JSON.stringify(m.label)});`)
@@ -143,20 +142,21 @@ if (Platform.OS !== 'web') {
       .filter(p => p.geometry)
       .map(p => `try{L.geoJSON(${JSON.stringify(p.geometry)},{style:{color:'#2ecc71',weight:2.5,fillColor:'#2ecc71',fillOpacity:0.18}}).addTo(map);}catch(e){}`)
       .join('\n');
-    const perspStyle = viewMode === 'street'
-      ? `#wrap{overflow:hidden;width:100%;height:100%;position:relative;}#map{position:absolute;width:160%;height:160%;left:-30%;top:-30%;transform-origin:center 80%;transform:perspective(700px) rotateX(42deg);}`
-      : `#wrap,#map{width:100%;height:100%;}`;
-    return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1.0"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/><style>html,body{margin:0;padding:0;width:100%;height:100%;} ${perspStyle}</style></head><body><div id="wrap"><div id="map"></div></div><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script>
+    const sensorMarkersJs = sensorMarkers
+      .map(s => `L.marker([${s.lat},${s.lng}],{icon:L.divIcon({html:${JSON.stringify(`<div style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:${s.color || '#3498db'};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.55);font-size:14px;">${s.icon || '◎'}</div>`)},className:'',iconSize:[26,26],iconAnchor:[13,13]})}).addTo(map).bindPopup(${JSON.stringify(s.label || '')});`)
+      .join('\n');
+    return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1.0"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/><style>html,body{margin:0;padding:0;width:100%;height:100%;} #wrap,#map{width:100%;height:100%;}</style></head><body><div id="wrap"><div id="map"></div></div><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script>
   var map = L.map('map',{zoomControl:false}).setView(${center});
   L.tileLayer(${JSON.stringify(TILE_SATELLITE.url)},{attribution:${JSON.stringify(TILE_SATELLITE.attribution)}}).addTo(map);
   ${polygonsJs}
   ${markersJs}
+  ${sensorMarkersJs}
   ${fitBoundsJs}
 <\/script></body></html>`;
   }
 
-  NativeMap = function TechFarmMapNative({ markers = [], polygons = [], viewMode = 'satellite', focusedIndex = null, style }) {
-    const html = buildHtml(markers, polygons, viewMode, focusedIndex);
+  NativeMap = function TechFarmMapNative({ markers = [], polygons = [], sensorMarkers = [], focusedIndex = null, style }) {
+    const html = buildHtml(markers, polygons, focusedIndex, sensorMarkers);
     return (
       <WebView
         style={[{ flex: 1 }, style]}
@@ -169,14 +169,14 @@ if (Platform.OS !== 'web') {
 }
 
 // ---------- Export ----------
-export default function TechFarmMap({ markers = [], polygons = [], viewMode = 'satellite', focusedIndex = null, style }) {
+export default function TechFarmMap({ markers = [], polygons = [], sensorMarkers = [], focusedIndex = null, style }) {
   if (Platform.OS === 'web' && LeafletMap) {
-    return <LeafletMap markers={markers} polygons={polygons} viewMode={viewMode} focusedIndex={focusedIndex} style={style} />;
+    return <LeafletMap markers={markers} polygons={polygons} sensorMarkers={sensorMarkers} focusedIndex={focusedIndex} style={style} />;
   }
   if (NativeMap) {
     return (
       <View style={[st.container, style]}>
-        <NativeMap markers={markers} polygons={polygons} viewMode={viewMode} focusedIndex={focusedIndex} />
+        <NativeMap markers={markers} polygons={polygons} sensorMarkers={sensorMarkers} focusedIndex={focusedIndex} />
       </View>
     );
   }
