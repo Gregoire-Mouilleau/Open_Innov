@@ -1,0 +1,147 @@
+{
+  "widgets": {
+    "camera_live": "Live Camera",
+    "camera_ia": "AI Health Camera",
+    "map": "Interactive Map",
+    "temperature": "Temperature",
+    "humidity": "Humidity",
+    "luminosity": "Luminosity",
+    "diseases": "Disease Detection"
+  },
+  "dashboard": {
+    "addWidget": "+ Widget"
+  },
+  "menu": {
+    "title": "Menu",
+    "profile": "Profile",
+    "addWidget": "Add a widget",
+    "changeFarm": "Switch farm",
+    "noFarm": "No farm",
+    "logout": "Log out",
+    "admin": "Administrator",
+    "member": "Member"
+  },
+  "modal": {
+    "title": "Add Widgets",
+    "subtitle": "Select a widget to add",
+    "addButton": "Add Widget",
+    "alreadyAdded": "\n(already added)"
+  },
+  "widgetContent": {
+    "live": "LIVE",
+    "detected": "⚠️ Detected"
+  },
+  "nav": {
+    "brand": "TechFarm",
+    "dashboard": "Dashboard",
+    "reports": "Reports",
+    "history": "History",
+    "notConnected": "Not connected",
+    "login": "Log in",
+    "admin": "Admin"
+  },
+  "userMenu": {
+    "roleAdmin": "Administrator",
+    "roleUser": "User",
+    "settings": "Account settings",
+    "settingsSub": "Password, preferences…",
+    "company": "My company",
+    "companySub": "Info and members",
+    "notifications": "Notifications",
+    "notificationsSub": "Alerts and reminders",
+    "logout": "Log out"
+  },
+  "left": {
+    "systems": "Systems",
+    "lastAnalysis": "Last IoT Analysis",
+    "today": "today at 15:24"
+  },
+  "map": {
+    "farmName": "Tartes Ferme",
+    "satellite": "Satellite View",
+    "viewStreet": "3D View",
+    "noGps": "No GPS coordinates configured",
+    "cameraLive": "Live Camera",
+    "alertHumidity": "⚠️  Low Soil Humidity"
+  },
+  "charts": {
+    "tempHumidity": "Temperature & Humidity History",
+    "soilHumidity": "Soil Humidity",
+    "temp": "Temp.",
+    "humidity": "Humidity"
+  },
+  "alerts": {
+    "title": "Alerts",
+    "activities": "Recent Activities"
+  },
+  "settings": {
+    "title": "Account settings",
+    "back": "‹ Back",
+    "profile": "Profile",
+    "profileSub": "First name, last name, email",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "save": "Save",
+    "saving": "Saving…",
+    "security": "Security",
+    "securitySub": "Change your password",
+    "currentPwd": "Current password",
+    "newPwd": "New password",
+    "confirmPwd": "Confirm new password",
+    "changePwd": "Change password",
+    "changing": "Changing…",
+    "language": "Language",
+    "languageSub": "Interface language",
+    "langFr": "Français",
+    "langEn": "English",
+    "langRestart": "The language is applied on next navigation."
+  },
+  "company": {
+    "title": "My company",
+    "back": "‹ Back",
+    "farms": "Farms",
+    "farmsSub": "GPS locations and parcels",
+    "addFarm": "+ Add a farm",
+    "farmName": "Farm name",
+    "address": "Address",
+    "zip": "Zip code",
+    "country": "Country",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "create": "Create farm",
+    "creating": "Creating…",
+    "members": "Members",
+    "membersSub": "Team and access",
+    "invite": "+ Invite a member",
+    "inviteEmail": "New member email",
+    "inviteFirstName": "First name",
+    "inviteLastName": "Last name",
+    "inviteRole": "Role",
+    "inviteBtn": "Send invitation",
+    "inviting": "Sending…",
+    "noFarms": "No farms yet.",
+    "noMembers": "No members.",
+    "parcelles": "parcel(s)",
+    "noOrg": "No organisation yet",
+    "createOrgSub": "Create your structure to manage your farms and team.",
+    "orgName": "Organisation name",
+    "createOrgBtn": "Create organisation",
+    "roles": "Roles & Permissions",
+    "rolesSub": "Configure access by role",
+    "addRole": "+ Role",
+    "roleName": "Role name",
+    "saveRole": "Save",
+    "deleteRole": "Delete",
+    "newRoleTitle": "New role",
+    "baseRole": "Base level",
+    "members": "members",
+    "permManageFarms": "Manage farms",
+    "permManageParcelles": "Manage plots",
+    "permManageKits": "Manage IoT kits",
+    "permViewReports": "View reports",
+    "permManageMembers": "Manage members",
+    "permManageRoles": "Manage roles",
+    "changeRole": "Change role"
+  }
+}

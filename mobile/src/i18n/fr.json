@@ -1,0 +1,152 @@
+{
+  "widgets": {
+    "camera_live": "Caméra en Direct",
+    "camera_ia": "Caméra IA Santé",
+    "map": "Carte Interactive",
+    "temperature": "Température",
+    "humidity": "Humidité Air",
+    "soil": "Humidité Sol",
+    "wind": "Vent",
+    "health": "Santé Cultures",
+    "alerts": "Alertes",
+    "parcelles": "Parcelles",
+    "luminosity": "Luminosité",
+    "diseases": "Détection Maladies"
+  },
+  "dashboard": {
+    "addWidget": "+ Widget"
+  },
+  "menu": {
+    "title": "Menu",
+    "profile": "Profil",
+    "addWidget": "Ajouter un widget",
+    "changeFarm": "Changer de ferme",
+    "noFarm": "Aucune ferme",
+    "logout": "Se déconnecter",
+    "admin": "Administrateur",
+    "member": "Membre"
+  },
+  "modal": {
+    "title": "Ajouter des Widgets",
+    "subtitle": "Sélectionne un widget à ajouter",
+    "addButton": "Ajouter Widget",
+    "alreadyAdded": "\n(déjà ajouté)"
+  },
+  "widgetContent": {
+    "live": "LIVE",
+    "detected": "⚠️ Détectée"
+  },
+  "nav": {
+    "brand": "TechFarm",
+    "dashboard": "Tableau de bord",
+    "reports": "Rapports",
+    "history": "Historique",
+    "notConnected": "Non connecté",
+    "login": "Se connecter",
+    "admin": "Admin"
+  },
+  "userMenu": {
+    "roleAdmin": "Administrateur",
+    "roleUser": "Utilisateur",
+    "settings": "Paramètres du compte",
+    "settingsSub": "Mot de passe, préférences…",
+    "company": "Mon entreprise",
+    "companySub": "Infos et membres",
+    "notifications": "Notifications",
+    "notificationsSub": "Alertes et rappels",
+    "logout": "Se déconnecter"
+  },
+  "left": {
+    "systems": "Systèmes",
+    "lastAnalysis": "Dernière Analyse iOT",
+    "today": "aujourd'hui à 15:24"
+  },
+  "map": {
+    "farmName": "Tartes Ferme",
+    "satellite": "Vue Satellite",
+    "viewStreet": "Vue 3D",
+    "noGps": "Aucune coordonnée GPS renseignée",
+    "cameraLive": "Caméra en Direct",
+    "alertHumidity": "⚠️  Alerte Humidité Sol Basse"
+  },
+  "charts": {
+    "tempHumidity": "Historique Température & Humidité",
+    "soilHumidity": "Humidité du Sol",
+    "temp": "Temp.",
+    "humidity": "Humidité"
+  },
+  "alerts": {
+    "title": "Alertes",
+    "activities": "Activités Récentes"
+  },
+  "settings": {
+    "title": "Paramètres du compte",
+    "back": "‹ Retour",
+    "profile": "Profil",
+    "profileSub": "Prénom, nom, email",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "email": "Email",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "security": "Sécurité",
+    "securitySub": "Changer le mot de passe",
+    "currentPwd": "Mot de passe actuel",
+    "newPwd": "Nouveau mot de passe",
+    "confirmPwd": "Confirmer le nouveau mot de passe",
+    "changePwd": "Changer le mot de passe",
+    "changing": "Modification…",
+    "language": "Langue",
+    "languageSub": "Langue de l'interface",
+    "langFr": "Français",
+    "langEn": "English",
+    "langRestart": "La langue est appliquée à la prochaine navigation."
+  },
+  "company": {
+    "title": "Mon entreprise",
+    "back": "‹ Retour",
+    "farms": "Fermes",
+    "farmsSub": "Localisations GPS et parcelles",
+    "addFarm": "+ Ajouter une ferme",
+    "farmName": "Nom de la ferme",
+    "address": "Adresse",
+    "zip": "Code postal",
+    "country": "Pays",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "create": "Créer la ferme",
+    "creating": "Création…",
+    "members": "Membres",
+    "membersSub": "Équipe et accès",
+    "invite": "+ Inviter un membre",
+    "inviteEmail": "Email du nouveau membre",
+    "inviteFirstName": "Prénom",
+    "inviteLastName": "Nom",
+    "inviteRole": "Rôle",
+    "inviteBtn": "Envoyer l'invitation",
+    "inviting": "Envoi…",
+    "noFarms": "Aucune ferme pour le moment.",
+    "noMembers": "Aucun membre.",
+    "parcelles": "parcelle(s)",
+    "noOrg": "Pas encore d'organisation",
+    "createOrgSub": "Créez votre structure pour gérer vos fermes et votre équipe.",
+    "orgName": "Nom de l'organisation",
+    "createOrgBtn": "Créer l'organisation",
+    "roles": "Rôles & Permissions",
+    "rolesSub": "Configurez les accès par rôle",
+    "addRole": "+ Rôle",
+    "roleName": "Nom du rôle",
+    "saveRole": "Enregistrer",
+    "deleteRole": "Supprimer",
+    "newRoleTitle": "Nouveau rôle",
+    "baseRole": "Niveau de base",
+    "members": "membres",
+    "permManageFarms": "Gérer les fermes",
+    "permManageParcelles": "Gérer les parcelles",
+    "permManageKits": "Gérer les kits IoT",
+    "permViewReports": "Consulter les rapports",
+    "permManageMembers": "Gérer les membres",
+    "permManageRoles": "Gérer les rôles",
+    "changeRole": "Changer le rôle"
+  }
+}

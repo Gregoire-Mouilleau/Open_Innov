@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"C:\\\\Users\\\\attis\\\\.claude\\\\agents\")",
+      "Read(//c/Users/attis/.claude/agents/**)",
+      "PowerShell(docker exec *)",
+      "Bash(docker exec *)",
+      "Bash(npm start *)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"http://localhost:8081/index.bundle?platform=web&dev=true\")",
+      "Bash(npm run *)",
+      "Bash(docker compose *)",
+      "PowerShell(foreach \\($port in 3000,8081\\) { $c = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue; if \\($c\\) { $c.OwningProcess | Select-Object -Unique | ForEach-Object { try { Stop-Process -Id $_ -Force -ErrorAction Stop; \"Killed PID $_ on port $port\" } catch {} } } else { \"Port $port libre\" } })",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"http://localhost:3000/api/capteurs?farm_id=3\")",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" \"http://localhost:3000/api/capteurs?farm_id=3\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"http://localhost:3000/api/cameras\")",
+      "PowerShell($c = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue; if \\($c\\) { $c.OwningProcess | Select-Object -Unique | ForEach-Object { try { Stop-Process -Id $_ -Force } catch {} } }; Start-Sleep -Milliseconds 500; $p = \"c:\\\\Users\\\\grego\\\\Desktop\\\\Epsi\\\\EPSI_Y4\\\\Projet Innov\\\\backend_next\\\\.next\"; if \\(Test-Path $p\\) { Remove-Item -Recurse -Force $p; \"Cache .next supprimé\" } else { \".next absent\" })",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"http://localhost:3000/api/cultures\")",
+      "PowerShell(foreach \\($port in 3000,8081\\) { $c = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue; if \\($c\\) { $c.OwningProcess | Select-Object -Unique | ForEach-Object { try { Stop-Process -Id $_ -Force -ErrorAction Stop; \"Killed PID $_ on $port\" } catch {} } } else { \"Port $port libre\" } })",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/api/cultures)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/api/farms)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/api/users/me)",
+      "PowerShell($c = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue; if \\($c\\) { $c.OwningProcess | Select-Object -Unique | ForEach-Object { try { Stop-Process -Id $_ -Force } catch {} } }; Start-Sleep -Milliseconds 600; $p = \"c:\\\\Users\\\\grego\\\\Desktop\\\\Epsi\\\\EPSI_Y4\\\\Projet Innov\\\\backend_next\\\\.next\"; if \\(Test-Path $p\\) { Remove-Item -Recurse -Force $p; \".next supprimé\" } else { \".next absent\" })"
+    ]
+  }
+}

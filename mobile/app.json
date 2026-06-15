@@ -16,14 +16,17 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#0f1923"
       },
       "edgeToEdgeEnabled": true
     },
     "web": {
       "favicon": "./assets/logo.png",
       "name": "TechFarm"
-    }
+    },
+    "plugins": [
+      "expo-localization"
+    ]
   }
 }
