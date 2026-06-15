@@ -7,9 +7,17 @@ const ALLOWED_ORIGINS = [
   process.env.FRONTEND_URL ?? '',
 ].filter(Boolean)
 
+// Domaines d'hébergement front autorisés (POC) : Vercel / Netlify / Cloudflare Pages
+const ALLOWED_ORIGIN_PATTERNS = [/\.vercel\.app$/, /\.netlify\.app$/, /\.pages\.dev$/]
+
 function getAllowedOrigin(origin: string | null): string {
   if (!origin) return ALLOWED_ORIGINS[0]
-  return ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
+  if (ALLOWED_ORIGINS.includes(origin)) return origin
+  try {
+    const host = new URL(origin).hostname
+    if (ALLOWED_ORIGIN_PATTERNS.some((re) => re.test(host))) return origin
+  } catch { /* origine invalide */ }
+  return ALLOWED_ORIGINS[0]
 }
 
 const CORS_HEADERS: Record<string, string> = {
