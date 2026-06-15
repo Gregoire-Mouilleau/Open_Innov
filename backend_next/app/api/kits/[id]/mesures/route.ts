@@ -24,7 +24,8 @@ export async function GET(request: Request, { params }: Params) {
   }
 
   if (mode === 'graph') {
-    // Données agrégées via time_bucket (TimescaleDB) pour les graphiques
+    // Bucketing temporel en Postgres standard (équivalent de time_bucket sans
+    // TimescaleDB) : on plancher l'epoch sur la largeur de l'intervalle.
     const capteurFilter = capteur_id ? 'AND m.capteur_id = $4' : ''
     const queryParams = capteur_id
       ? [interval, from, to, Number(capteur_id), Number(id)]
@@ -33,7 +34,10 @@ export async function GET(request: Request, { params }: Params) {
     const idParam = capteur_id ? '$5' : '$4'
 
     const result = await pool.query(
-      `SELECT time_bucket($1::interval, m.time) AS bucket,
+      `SELECT to_timestamp(
+                floor(extract(epoch from m.time) / extract(epoch from $1::interval))
+                * extract(epoch from $1::interval)
+              ) AS bucket,
               c.type,
               c.unite,
               AVG(m.valeur)::numeric(10,4) AS moyenne,

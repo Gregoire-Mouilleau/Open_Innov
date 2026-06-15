@@ -32,7 +32,8 @@ export async function POST(request: Request) {
   const accessToken = await signAccessToken({
     sub: String(user.id),
     email: user.email,
-    isAdmin: user.role === 'admin',
+    isAdmin: user.role === 'admin' || user.role === 'gerant',
+    role: user.role,
   })
 
   return NextResponse.json({ accessToken }, { status: 200 })

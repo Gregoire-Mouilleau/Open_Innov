@@ -40,6 +40,35 @@ export async function GET(request: Request, { params }: Params) {
   )
 }
 
+export async function PUT(request: Request, { params }: Params) {
+  const auth = await requireAuth(request)
+  if (isAuthError(auth)) return auth
+
+  const { id } = await params
+  const body = await request.json()
+  const { nom, superficie_ha, culture_type, position_lat, position_lng, geometry } = body
+
+  const result = await pool.query(
+    `UPDATE parcelle
+     SET nom           = COALESCE($1, nom),
+         superficie_ha = COALESCE($2, superficie_ha),
+         culture_type  = COALESCE($3, culture_type),
+         position_lat  = COALESCE($4, position_lat),
+         position_lng  = COALESCE($5, position_lng),
+         geometry      = COALESCE($6, geometry)
+     WHERE id = $7
+     RETURNING id, nom, superficie_ha, culture_type, position_lat, position_lng, geometry, farm_id`,
+    [nom ?? null, superficie_ha ?? null, culture_type ?? null, position_lat ?? null, position_lng ?? null,
+     geometry ? JSON.stringify(geometry) : null, Number(id)]
+  )
+
+  if (result.rowCount === 0) {
+    return NextResponse.json({ error: 'parcelle introuvable' }, { status: 404 })
+  }
+
+  return NextResponse.json({ parcelle: result.rows[0] }, { status: 200 })
+}
+
 export async function DELETE(request: Request, { params }: Params) {
   const auth = await requireAuth(request)
   if (isAuthError(auth)) return auth
@@ -49,12 +78,44 @@ export async function DELETE(request: Request, { params }: Params) {
   }
 
   const { id } = await params
+  const parcelleId = Number(id)
 
-  const result = await pool.query('DELETE FROM parcelle WHERE id = $1 RETURNING id', [Number(id)])
+  // Pas de ON DELETE CASCADE en BDD : on supprime les dépendances
+  // (mesure → capteur → kit, récoltes, photos) dans une transaction.
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
 
-  if (result.rowCount === 0) {
-    return NextResponse.json({ error: 'parcelle introuvable' }, { status: 404 })
+    const exists = await client.query('SELECT id FROM parcelle WHERE id = $1', [parcelleId])
+    if (exists.rowCount === 0) {
+      await client.query('ROLLBACK')
+      return NextResponse.json({ error: 'parcelle introuvable' }, { status: 404 })
+    }
+
+    await client.query(
+      `DELETE FROM mesure
+       WHERE capteur_id IN (
+         SELECT c.id FROM capteur c
+         JOIN kit k ON k.id = c.kit_id
+         WHERE k.parcelle_id = $1
+       )`,
+      [parcelleId]
+    )
+    await client.query(
+      `DELETE FROM capteur WHERE kit_id IN (SELECT id FROM kit WHERE parcelle_id = $1)`,
+      [parcelleId]
+    )
+    await client.query('DELETE FROM kit WHERE parcelle_id = $1', [parcelleId])
+    await client.query('DELETE FROM recolte WHERE parcelle_id = $1', [parcelleId])
+    await client.query(`DELETE FROM photo WHERE entity_type = 'parcelle' AND entity_id = $1`, [parcelleId])
+    await client.query('DELETE FROM parcelle WHERE id = $1', [parcelleId])
+
+    await client.query('COMMIT')
+    return NextResponse.json({ message: 'parcelle supprimée' }, { status: 200 })
+  } catch {
+    await client.query('ROLLBACK')
+    return NextResponse.json({ error: 'échec de la suppression de la parcelle' }, { status: 500 })
+  } finally {
+    client.release()
   }
-
-  return NextResponse.json({ message: 'parcelle supprimée' }, { status: 200 })
 }

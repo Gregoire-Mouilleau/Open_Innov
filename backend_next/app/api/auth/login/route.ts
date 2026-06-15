@@ -11,41 +11,51 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'email et password requis' }, { status: 400 })
   }
 
-  const result = await pool.query<{
-    id: number
-    email: string
-    password_hash: string
-    role: string
-  }>(
-    'SELECT id, email, password_hash, role FROM users WHERE email = $1',
-    [email]
-  )
+  try {
+    const result = await pool.query<{
+      id: number
+      email: string
+      password_hash: string
+      role: string
+    }>(
+      'SELECT id, email, password_hash, role FROM users WHERE email = $1',
+      [email]
+    )
 
-  const user = result.rows[0]
+    const user = result.rows[0]
 
-  if (!user || !(await comparePassword(password, user.password_hash))) {
-    return NextResponse.json({ error: 'identifiants invalides' }, { status: 401 })
+    if (!user || !(await comparePassword(password, user.password_hash))) {
+      return NextResponse.json({ error: 'identifiants invalides' }, { status: 401 })
+    }
+
+    const payload = {
+      sub:     String(user.id),
+      email:   user.email,
+      isAdmin: user.role === 'admin' || user.role === 'gerant',
+      role:    user.role,
+    }
+
+    const [accessToken, refreshToken] = await Promise.all([
+      signAccessToken(payload),
+      signRefreshToken({ sub: payload.sub }),
+    ])
+
+    const response = NextResponse.json(
+      { user: { id: user.id, email: user.email, role: user.role }, accessToken },
+      { status: 200 }
+    )
+
+    response.cookies.set('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/api/auth/refresh',
+    })
+
+    return response
+  } catch (err) {
+    console.error('[login]', err)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
-
-  const payload = { sub: String(user.id), email: user.email, isAdmin: user.role === 'admin' }
-
-  const [accessToken, refreshToken] = await Promise.all([
-    signAccessToken(payload),
-    signRefreshToken({ sub: payload.sub }),
-  ])
-
-  const response = NextResponse.json(
-    { user: { id: user.id, email: user.email, role: user.role }, accessToken },
-    { status: 200 }
-  )
-
-  response.cookies.set('refresh_token', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7,
-    path: '/api/auth/refresh',
-  })
-
-  return response
 }
