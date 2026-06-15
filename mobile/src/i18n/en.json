@@ -11,6 +11,16 @@
   "dashboard": {
     "addWidget": "+ Widget"
   },
+  "menu": {
+    "title": "Menu",
+    "profile": "Profile",
+    "addWidget": "Add a widget",
+    "changeFarm": "Switch farm",
+    "noFarm": "No farm",
+    "logout": "Log out",
+    "admin": "Administrator",
+    "member": "Member"
+  },
   "modal": {
     "title": "Add Widgets",
     "subtitle": "Select a widget to add",

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TechFarm — QR Expo</title>
+  <style>
+    body { margin:0; min-height:100vh; display:flex; flex-direction:column;
+           align-items:center; justify-content:center; gap:18px;
+           background:#0f1923; color:#e6edf3; font-family:system-ui, sans-serif; }
+    h1 { font-size:20px; margin:0; }
+    .card { background:#fff; padding:20px; border-radius:16px; }
+    code { background:#1c2733; padding:6px 12px; border-radius:8px; font-size:15px; color:#2ecc71; }
+    p { opacity:.8; font-size:14px; text-align:center; max-width:340px; }
+  </style>
+</head>
+<body>
+  <h1>📱 Scanne ce QR avec l'appareil photo de l'iPhone</h1>
+  <div class="card"><div id="qr"></div></div>
+  <code id="url">exp://172.20.10.2:8081</code>
+  <p>L'appareil photo détecte le code et propose d'ouvrir dans <b>Expo Go</b>.
+     L'iPhone doit être sur le <b>même réseau Wi-Fi</b> que le PC.</p>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script>
+    var url = 'exp://172.20.10.2:8081';
+    new QRCode(document.getElementById('qr'), { text: url, width: 280, height: 280 });
+  </script>
+</body>
+</html>

@@ -3,13 +3,16 @@ import { View, Text } from 'react-native';
 import { COLORS } from '../../../constants/theme';
 import SvgLineChart from '../../../components/charts/SvgLineChart';
 import SvgDonut from '../../../components/charts/SvgDonut';
-import { sampleTicks } from '../../../utils/format';
+import { sampleTicks, niceScale } from '../../../utils/format';
 import { st } from '../styles';
 
 export default function ChartsRow({ systems, tempCurve = [], humidCurve = [], chartLabels = [] }) {
   const rawSoil = systems?.find(s => s.id === 'soil')?.value;
   const soilVal = rawSoil && rawSoil !== '—' ? Math.round(parseFloat(rawSoil)) : 0;
   const xTicks  = sampleTicks(chartLabels);
+  // Échelles adaptatives : on zoome sur la plage réelle pour voir les fluctuations.
+  const tempScale  = niceScale(tempCurve,  { clampMin: -30, clampMax: 60,  minSpan: 4 });
+  const humidScale = niceScale(humidCurve, { clampMin: 0,   clampMax: 100, minSpan: 6 });
   return (
     <View style={st.chartsRow}>
       {/* Température 24h */}
@@ -18,7 +21,7 @@ export default function ChartsRow({ systems, tempCurve = [], humidCurve = [], ch
           <Text style={st.chartTitle}>Température (24h)</Text>
           <Text style={st.chartUnit}>°C</Text>
         </View>
-        <SvgLineChart data={tempCurve} color="#e67e22" yMin={0} yMax={35} yTicks={[0,10,20,30]} xTicks={xTicks} unit="°C" dataLabels={chartLabels} />
+        <SvgLineChart data={tempCurve} color="#e67e22" yMin={tempScale.yMin} yMax={tempScale.yMax} yTicks={tempScale.yTicks} xTicks={xTicks} unit="°C" dataLabels={chartLabels} />
       </View>
 
       {/* Humidité 24h */}
@@ -27,7 +30,7 @@ export default function ChartsRow({ systems, tempCurve = [], humidCurve = [], ch
           <Text style={st.chartTitle}>Humidité (24h)</Text>
           <Text style={st.chartUnit}>%</Text>
         </View>
-        <SvgLineChart data={humidCurve} color="#3498db" yMin={0} yMax={100} yTicks={[0,25,50,75,100]} xTicks={xTicks} unit="%" dataLabels={chartLabels} />
+        <SvgLineChart data={humidCurve} color="#3498db" yMin={humidScale.yMin} yMax={humidScale.yMax} yTicks={humidScale.yTicks} xTicks={xTicks} unit="%" dataLabels={chartLabels} />
       </View>
 
       {/* Humidité du sol — jauge circulaire */}

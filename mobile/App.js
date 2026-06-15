@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Platform, View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import DashboardScreen from './src/screens/mobile/DashboardScreen';
 import DashboardDesktopScreen from './src/screens/desktop/DashboardDesktopScreen';
@@ -20,7 +21,14 @@ import { tokenStorage } from './src/services/api';
 import { setLanguage } from './src/i18n';
 
 const Stack = createStackNavigator();
-const isWeb = Platform.OS === 'web';
+
+// Choix responsive : écran large → desktop, étroit (téléphone / fenêtre réduite) → widgets mobiles.
+function DashboardRouter(props) {
+  const { width } = useWindowDimensions();
+  return width < 820
+    ? <DashboardScreen {...props} />
+    : <DashboardDesktopScreen {...props} />;
+}
 
 function AuthStack() {
   return (
@@ -34,10 +42,7 @@ function AuthStack() {
 function AppStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {isWeb
-        ? <Stack.Screen name="Dashboard" component={DashboardDesktopScreen} />
-        : <Stack.Screen name="Dashboard" component={DashboardScreen} />
-      }
+      <Stack.Screen name="Dashboard" component={DashboardRouter} />
       <Stack.Screen name="Parcelles"       component={ParcellesScreen}       />
       <Stack.Screen name="ParcelleDetail"  component={ParcelleDetailScreen}  />
       <Stack.Screen name="Alertes"         component={AlertesScreen}         />
@@ -57,10 +62,15 @@ export default function App() {
     ]).then(([token, lang]) => {
       if (lang) setLanguage(lang);
       setAuthState(token ? 'app' : 'auth');
+    }).catch(() => {
+      // Lecture du stockage impossible → ne jamais rester bloqué sur le spinner,
+      // on bascule sur l'écran de login.
+      setAuthState('auth');
     });
   }, []);
 
   return (
+    <SafeAreaProvider>
     <ToastProvider>
       <NavigationContainer>
         <StatusBar style="light" />
@@ -82,6 +92,7 @@ export default function App() {
       </NavigationContainer>
       <ToastContainer />
     </ToastProvider>
+    </SafeAreaProvider>
   );
 }
 

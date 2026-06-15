@@ -8,49 +8,41 @@ import { COLORS } from '../../constants/theme';
 import { t } from '../../i18n';
 import { WidgetContent } from '../../components/mobile/WidgetContent';
 import AddWidgetModal from '../../components/mobile/AddWidgetModal';
+import DashboardMenu from '../../components/mobile/DashboardMenu';
 import useDashboardData from '../../hooks/useDashboardData';
+import useAuth from '../../hooks/useAuth';
 
 const isWeb = Platform.OS === 'web';
 const GAP = isWeb ? 16 : 10;
 const PADDING = isWeb ? 24 : 16;
 const ROW_HEIGHT = isWeb ? 220 : 130;
 
-const WIDGET_CATALOG = {
-  camera_live: { id: 'camera_live' },
-  camera_ia:   { id: 'camera_ia' },
-  map:         { id: 'map' },
-  temperature: { id: 'temperature' },
-  humidity:    { id: 'humidity' },
-  luminosity:  { id: 'luminosity' },
-  diseases:    { id: 'diseases' },
-};
+const w = (id) => ({ id, key: id });
 
-const w = (id) => ({ ...WIDGET_CATALOG[id], key: id });
-
+// Disposition par défaut "terrain" : valeurs capteurs en haut, puis alertes,
+// carte, parcelles, caméra. Tout est réorganisable par glisser-déposer.
 const DEFAULT_ROWS = [
-  [w('camera_live'), w('camera_ia')],
+  [w('temperature'), w('humidity'), w('soil')],
+  [w('wind'), w('health')],
+  [w('alerts')],
   [w('map')],
-  [w('temperature'), w('humidity'), w('luminosity')],
-  [w('diseases')],
+  [w('parcelles')],
+  [w('camera_live')],
 ];
 
-export default function DashboardScreen() {
+export default function DashboardScreen({ navigation }) {
   const [rows, setRows] = useState(DEFAULT_ROWS);
   const [containerWidth, setContainerWidth] = useState(Dimensions.get('window').width);
   const [modalVisible, setModalVisible] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
   const [dragSrc, setDragSrc] = useState(null);
   const [dropTarget, setDropTarget] = useState(null);
   const [floatPos, setFloatPos] = useState({ x: 0, y: 0 });
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
-  // Données réelles
+  // Données réelles (mêmes que le desktop, via le hook partagé)
   const { data: dashData, selectedFarmId, selectFarm } = useDashboardData();
-  const [showFarmPicker, setShowFarmPicker] = useState(false);
-  // Extrait les valeurs brutes des capteurs depuis systems
-  const sensorData = dashData?.systems?.reduce((acc, s) => {
-    if (s.value !== '—') acc[s.id === 'temp' ? 'temperature' : s.id === 'humidity' ? 'humidite_air' : 'humidite_sol'] = s.value;
-    return acc;
-  }, {}) ?? {};
+  const { user, logout } = useAuth(navigation);
 
   const isDraggingRef = useRef(false);
   const dragSrcRef = useRef(null);
@@ -204,44 +196,15 @@ export default function DashboardScreen() {
   const draggedWidget = isDragging ? rows[dragSrc.rowIdx]?.[dragSrc.colIdx] : null;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
-        <View style={styles.headerCenter} pointerEvents="none">
+        <View style={styles.headerLeft}>
           <Image source={require('../../../assets/logo.png')} style={styles.headerLogo} resizeMode="contain" />
           <Text style={styles.headerTitle}>TechFarm</Text>
         </View>
-        <View style={styles.headerRight}>
-          {dashData.farmsList.length > 1 && (
-            <View style={styles.farmPickerWrap}>
-              <TouchableOpacity
-                style={styles.farmPickerBtn}
-                onPress={() => setShowFarmPicker((v) => !v)}
-              >
-                <Text style={styles.farmPickerText} numberOfLines={1}>{dashData.farmName}</Text>
-                <Text style={styles.farmPickerArrow}>{showFarmPicker ? '▲' : '▼'}</Text>
-              </TouchableOpacity>
-              {showFarmPicker && (
-                <View style={styles.farmDropdown}>
-                  {dashData.farmsList.map((f) => (
-                    <TouchableOpacity
-                      key={f.id}
-                      style={[styles.farmDropdownItem, f.id === selectedFarmId && styles.farmDropdownItemActive]}
-                      onPress={() => { selectFarm(f.id); setShowFarmPicker(false); }}
-                    >
-                      <Text style={[styles.farmDropdownText, f.id === selectedFarmId && styles.farmDropdownTextActive]}>{f.nom}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
-          )}
-          {dashData.farmsList.length === 1 && (
-            <Text style={styles.farmSingleLabel} numberOfLines={1}>{dashData.farmName}</Text>
-          )}
-          <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
-            <Text style={styles.addBtnText}>{t('dashboard.addWidget')}</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.burgerBtn} onPress={() => setMenuVisible(true)}>
+          <Text style={styles.burgerIcon}>☰</Text>
+        </TouchableOpacity>
       </View>
 
       <View
@@ -271,7 +234,7 @@ export default function DashboardScreen() {
                           delayLongPress={350}
                           style={[styles.widgetCard, { height: ROW_HEIGHT }]}
                         >
-                          <WidgetContent widgetId={item.id} data={sensorData} />
+                          <WidgetContent widgetId={item.id} data={dashData} />
                           {!isDragging && (
                             <>
                               <View style={styles.dragHint} pointerEvents="none">
@@ -304,7 +267,7 @@ export default function DashboardScreen() {
 
       {isDragging && draggedWidget && (
         <View pointerEvents="none" style={[styles.ghost, { width: containerWidth * 0.45, height: ROW_HEIGHT, left: floatPos.x - (containerWidth * 0.45) / 2, top: floatPos.y - ROW_HEIGHT / 2 }]}>
-          <WidgetContent widgetId={draggedWidget.id} />
+          <WidgetContent widgetId={draggedWidget.id} data={dashData} />
         </View>
       )}
 
@@ -318,6 +281,19 @@ export default function DashboardScreen() {
         }}
         activeWidgets={rows.flat().map((ww) => ww.id)}
       />
+
+      <DashboardMenu
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+        user={user}
+        farmsList={dashData.farmsList}
+        selectedFarmId={selectedFarmId}
+        farmName={dashData.farmName}
+        onProfile={() => navigation.navigate('AccountSettings')}
+        onAddWidget={() => setModalVisible(true)}
+        onSelectFarm={selectFarm}
+        onLogout={logout}
+      />
     </SafeAreaView>
   );
 }
@@ -328,65 +304,28 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     paddingHorizontal: PADDING,
     paddingVertical: isWeb ? 14 : 10,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     zIndex: 100,
   },
-  headerRight: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    zIndex: 100,
-  },
-  farmPickerWrap: { position: 'relative', zIndex: 200 },
-  farmPickerBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    gap: 6,
-    maxWidth: 160,
-  },
-  farmPickerText: { color: COLORS.text, fontSize: 13, fontWeight: '600', flexShrink: 1 },
-  farmPickerArrow: { color: COLORS.textSecondary, fontSize: 10 },
-  farmDropdown: {
-    position: 'absolute',
-    top: '100%',
-    right: 0,
-    marginTop: 4,
-    backgroundColor: COLORS.surface,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    minWidth: 180,
-    overflow: 'hidden',
-    ...Platform.select({ web: { boxShadow: '0 4px 16px rgba(0,0,0,0.35)' }, default: { elevation: 8 } }),
-  },
-  farmDropdownItem: { paddingHorizontal: 16, paddingVertical: 11 },
-  farmDropdownItemActive: { backgroundColor: COLORS.accent + '22' },
-  farmDropdownText: { color: COLORS.textSecondary, fontSize: 14 },
-  farmDropdownTextActive: { color: COLORS.accent, fontWeight: '700' },
-  farmSingleLabel: { color: COLORS.textSecondary, fontSize: 13, maxWidth: 130 },
-  headerCenter: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     gap: 10,
   },
   headerLogo: { width: 36, height: 36 },
   headerTitle: { color: COLORS.text, fontSize: 20, fontWeight: 'bold', letterSpacing: 0.5 },
-  addBtn: { backgroundColor: COLORS.accent, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
-  addBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
+  burgerBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+  },
+  burgerIcon: { color: COLORS.text, fontSize: 24, lineHeight: 26 },
   grid: { padding: PADDING, gap: GAP },
   row: { flexDirection: 'row', gap: GAP },
   widgetDragging: { opacity: 0.2 },
