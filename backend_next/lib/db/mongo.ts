@@ -4,12 +4,11 @@ declare global {
   var _mongoConn: Promise<typeof mongoose> | undefined
 }
 
-const MONGODB_URI = process.env.MONGODB_URI!
-
-const connect = globalThis._mongoConn ?? mongoose.connect(MONGODB_URI)
-
-if (process.env.NODE_ENV !== 'production') {
-  globalThis._mongoConn = connect
+// Connexion paresseuse : `mongoose.connect` n'est lancé qu'au premier appel
+// (runtime), jamais à l'import — sinon `next build` plante (MONGODB_URI absente).
+export default function mongoConnect(): Promise<typeof mongoose> {
+  if (!globalThis._mongoConn) {
+    globalThis._mongoConn = mongoose.connect(process.env.MONGODB_URI!)
+  }
+  return globalThis._mongoConn
 }
-
-export default connect

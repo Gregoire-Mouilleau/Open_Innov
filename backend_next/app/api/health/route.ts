@@ -16,7 +16,7 @@ async function checkPostgres(): Promise<ServiceStatus> {
 
 async function checkMongo(): Promise<ServiceStatus> {
   try {
-    const mongoose = await mongoConnect
+    const mongoose = await mongoConnect()
     const state = mongoose.connection.readyState
     if (state === 1) return { status: 'ok', message: 'connected' }
     return { status: 'error', message: `readyState=${state}` }
