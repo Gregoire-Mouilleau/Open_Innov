@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { ObjectId } from 'mongodb'
-import { getMongoDb } from '@/lib/db/mongoNative'
+import pool from '@/lib/db/postgres'
 import { requireAuth, isAuthError } from '@/lib/auth/verify'
 
 type Params = { params: Promise<{ id: string }> }
@@ -11,20 +10,17 @@ export async function PATCH(request: Request, { params }: Params) {
   if (isAuthError(auth)) return auth
 
   const { id } = await params
-  const body = await request.json().catch(() => ({}))
-  const lu = body?.lu !== undefined ? !!body.lu : true
-
-  let _id: ObjectId
-  try {
-    _id = new ObjectId(id)
-  } catch {
+  const idNum = Number(id)
+  if (!Number.isInteger(idNum)) {
     return NextResponse.json({ error: 'id invalide' }, { status: 400 })
   }
 
-  const db = await getMongoDb()
-  const res = await db.collection('alertes').updateOne({ _id }, { $set: { lu } })
+  const body = await request.json().catch(() => ({}))
+  const lu = body?.lu !== undefined ? !!body.lu : true
 
-  if (res.matchedCount === 0) {
+  const res = await pool.query('UPDATE alerte SET lu = $1 WHERE id = $2', [lu, idNum])
+
+  if (res.rowCount === 0) {
     return NextResponse.json({ error: 'alerte introuvable' }, { status: 404 })
   }
 
