@@ -24,32 +24,37 @@ Décisions techniques dans `doc/adr/`.
 
 ---
 
-## Bloc 2 — Intégration Next.js (2 sessions)
+## Bloc 2 — Intégration Next.js ✅ (session 2026-05-11)
 **Objectif :** API routes qui exposent les données.
 
-- [ ] 2.1 — Clients DB (Prisma/pg + mongoose + minio-js), `.env`, route `/backend_next/health`
-- [ ] 2.2 — Endpoints : `GET /backend_next/parcelles`, `GET /backend_next/parcelles/:id/mesures?range=24h`, `GET /backend_next/alertes`
+- [x] 2.1 — Clients DB (`pg` + `mongoose` + `minio`), `.env`, route `GET /api/health`
+- [x] 2.2 — Auth JWT stateless (`jose`) : register, login, refresh, middleware `requireAuth`/`isAdmin` (ADR-0004)
+- [x] 2.3 — CRUD Users, Company, Farms, Parcelles, Kits
+- [x] 2.4 — Mesures IoT (raw + graphiques TimescaleDB), Photos MinIO (URLs signées)
+- [x] 2.5 — Proxy météo open-meteo : daily/hourly, cache 30 min
 
-**Livrables :** API testable via Thunder Client / Postman.
+**Livrables :** API complète testable via Thunder Client / Postman.
 
 ---
 
-## Bloc 3 — Docker Compose complet + Healthchecks (2 sessions)
+## Bloc 3 — Docker Compose complet + Healthchecks ✅ (session 2026-05-11)
 **Objectif :** `docker compose up` lance toute la stack.
 
-- [ ] 3.1 — `docker-compose.yml` : postgres+timescale, mongo, minio, next.js — réseaux, volumes, healthchecks
-- [ ] 3.2 — Init SQL au démarrage Postgres, seed optionnel, README de lancement
+- [x] 3.1 — `docker-compose.dev.yml` : postgres+timescale, mongo, minio — réseaux, volumes, healthchecks (3 services healthy)
+- [x] 3.2 — Init SQL au démarrage Postgres, seed reproductible, README de lancement
+- [~] Next.js non containerisé en dev (reporté au Bloc 8 prod — `npm run dev` en local)
 
-**Livrables :** `git clone` + `docker compose up` = projet qui tourne.
+**Livrables :** `docker compose -f docker-compose.dev.yml up -d` + `npm run dev` = stack complète.
 
 ---
 
-## Bloc 4 — Coordination mobile/API (1 session)
+## Bloc 4 — Coordination mobile/API ✅ (session 2026-05-11)
 **Objectif :** Mobile Expo et API Next.js communiquent sans friction.
 
-- [ ] 4.1 — Définir contrat API (endpoints consommés par mobile), `.env.example` commun, test CORS + URLs en local
+- [x] 4.1 — Contrat API défini et implémenté (auth, parcelles, kits, mesures, alertes, météo)
+- [ ] 4.2 — `.env.example` commun pour Grégoire (mobile), validation CORS + URLs en local
 
-**Livrables :** Mobile peut appeler l'API locale sans erreur.
+**Livrables :** API consommable par l'app Expo. CORS à valider avec Grégoire.
 
 ---
 

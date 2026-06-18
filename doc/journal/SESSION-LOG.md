@@ -20,6 +20,26 @@ Remplir en 5 min max à la fin de chaque session.
 
 ---
 
+## 2026-06-15 — Session 3 (Vérification BDD + Documentation TimescaleDB)
+
+**Objectif visé :** Tester et comprendre les données seedées dans TimescaleDB.
+
+**Fait :**
+- Vérification des services Docker (techfarm_postgres_dev, mongo, minio — tous healthy)
+- Validation des seeds : 2 companies, 5 farms, 15 parcelles, 32 kits, 103 capteurs, 296 743 mesures, 32 récoltes, 5 photos
+- Vérification hypertable `mesure` : 5 chunks × 7 jours, `time_bucket()` fonctionnel
+- Explication détaillée du schéma PostgreSQL (rôle de chaque table métier + tables auth)
+- Explication des concepts TimescaleDB : hypertable, chunks, chunk pruning, dimensions, `time_bucket`, `first()`/`last()`
+- Ajout slide 4 dans `doc/presentation_stack.md` : 2 diagrammes Mermaid + tableau comparatif + speaker notes
+
+**Bloqué / pas fait :** Aucun développement de fonctionnalité — session orientée compréhension et documentation.
+
+**Décision prise :** Aucune nouvelle décision technique.
+
+**Prochain démarrage :** Bloc 5 — CI/CD self-hosted runner (GitHub Actions + runner local).
+
+---
+
 ## 2026-05-11 — Session 2 (Blocs 2→4 complets — Stack API + Auth + CRUD + IoT + Météo)
 
 **Objectif visé :** Implémenter toute la couche API Next.js.
